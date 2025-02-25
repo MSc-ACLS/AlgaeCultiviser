@@ -1,13 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit'
-import dataReducer from '../features/dataSlice'
+import dataReducer, { loadInitialData } from '../features/dataSlice'
 
-export const store = configureStore({
+const store = configureStore({
   reducer: {
     data: dataReducer,
   },
 })
 
-// Define RootState and AppDispatch types
+store.dispatch(loadInitialData())
+
 export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch
 
