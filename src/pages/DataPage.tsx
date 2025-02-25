@@ -4,6 +4,7 @@ import { addDataset, removeDataset, setSelectedDatasetId } from '../features/dat
 import { Button, Typography, Box, Tooltip } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect } from 'react'
+import Papa from 'papaparse'
 
 const DataPage: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
@@ -30,14 +31,12 @@ const DataPage: React.FC = () => {
   }
 
   useEffect(() => {
-    console.log(selectionModel)
-    console.log(selectedDatasetId)
     if (selectionModel.length > 0) {
-      dispatch(setSelectedDatasetId(selectionModel[0] as number)) 
+      dispatch(setSelectedDatasetId(selectionModel[0] as number))
     } else {
-      dispatch(setSelectedDatasetId(null))  
+      dispatch(setSelectedDatasetId(null))
     }
-  }, [selectionModel])
+  }, [selectionModel, dispatch])
 
   const getColumnStats = (columnData: any[]) => {
     const count = columnData.length
@@ -105,6 +104,19 @@ const DataPage: React.FC = () => {
     return rowData
   }) : []
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      Papa.parse(file, {
+        complete: (result) => {
+          const data = result.data as any[]
+          dispatch(addDataset(data))
+        },
+        header: false,
+      })
+    }
+  }
+
   return (
     <Box
       sx={{
@@ -119,9 +131,15 @@ const DataPage: React.FC = () => {
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant='contained'
-            onClick={() => dispatch(addDataset([]))}
+            component='label'
           >
-            Add Dataset
+            Upload Dataset
+            <input
+              type='file'
+              accept='.csv'
+              hidden
+              onChange={handleFileUpload}
+            />
           </Button>
           <Button
             variant='contained'
