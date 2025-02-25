@@ -1,15 +1,15 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState, AppDispatch } from '../store'
-import { addDataset, removeDataset } from '../features/dataSlice'
+import { addDataset, removeDataset, setSelectedDatasetId } from '../features/dataSlice'
 import { Button, Typography, Box, Tooltip } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect } from 'react'
 
 const DataPage: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
+  const selectedDatasetId = useSelector((state: RootState) => state.data.selectedDatasetId)
   const dispatch = useDispatch<AppDispatch>()
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
-  const [selectedDataset, setSelectedDataset] = useState<any[]>([])
 
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 90 },
@@ -30,14 +30,14 @@ const DataPage: React.FC = () => {
   }
 
   useEffect(() => {
+    console.log(selectionModel)
+    console.log(selectedDatasetId)
     if (selectionModel.length > 0) {
-      const selectedId = selectionModel[0] as number
-      const dataset = datasets.find((d) => d.id === selectedId)
-      setSelectedDataset(dataset ? dataset.data : [])
+      dispatch(setSelectedDatasetId(selectionModel[0] as number)) 
     } else {
-      setSelectedDataset([])
+      dispatch(setSelectedDatasetId(null))  
     }
-  }, [selectionModel, datasets])
+  }, [selectionModel])
 
   const getColumnStats = (columnData: any[]) => {
     const count = columnData.length
@@ -51,34 +51,36 @@ const DataPage: React.FC = () => {
     return num.toPrecision(3)
   }
 
-  const dataViewColumns: GridColDef[] = selectedDataset[0]
-    ? selectedDataset[0].map((col: string, index: number) => {
-        const columnData = selectedDataset.slice(1).map(row => row[index])
+  const selectedDataset = selectedDatasetId !== null ? datasets.find(dataset => dataset.id === selectedDatasetId) : null
+
+  const dataViewColumns: GridColDef[] = selectedDataset && selectedDataset.data[0]
+    ? selectedDataset.data[0].map((col: string, index: number) => {
+        const columnData = selectedDataset.data.slice(1).map(row => row[index])
         const { count, mean, min, max } = getColumnStats(columnData)
         const type = typeof columnData[0]
         const tooltipTitle = (
           <table>
             <tbody>
               <tr>
-                <td>Type:</td>
+            <td>Type:</td>
                 <td>{type}</td>
-              </tr>
+            </tr>
               <tr>
                 <td>Count:</td>
                 <td>{count}</td>
-              </tr>
+            </tr>
               <tr>
                 <td>Mean:</td>
                 <td>{isNaN(mean) ? 'N/A' : formatNumber(mean)}</td>
-              </tr>
+            </tr>
               <tr>
                 <td>Min:</td>
                 <td>{isNaN(min) ? 'N/A' : formatNumber(min)}</td>
-              </tr>
+            </tr>
               <tr>
                 <td>Max:</td>
                 <td>{isNaN(max) ? 'N/A' : formatNumber(max)}</td>
-              </tr>
+          </tr>
             </tbody>
           </table>
         )
@@ -95,13 +97,13 @@ const DataPage: React.FC = () => {
       })
     : []
 
-  const dataViewRows = selectedDataset.slice(1).map((row, index) => {
+  const dataViewRows = selectedDataset ? selectedDataset.data.slice(1).map((row, index) => {
     const rowData: { [key: string]: any } = { id: index }
     row.forEach((cell: any, cellIndex: number) => {
       rowData[`col${cellIndex}`] = cell
     })
     return rowData
-  })
+  }) : []
 
   return (
     <Box

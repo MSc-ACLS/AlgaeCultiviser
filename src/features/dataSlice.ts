@@ -7,6 +7,7 @@ interface Dataset {
 
 interface DataState {
   datasets: Dataset[]
+  selectedDatasetId: number | null
 }
 
 const initialState: DataState = {
@@ -23,6 +24,7 @@ const initialState: DataState = {
       ["2024-06-07 15:20:00",16.813658,0.31857641,313.10767,569.79168,15.215278,88.479619,3835.791,28.515626,5.6576845,0.066529192,83.139578,4.9980696,3.5525762,6.6140281,-0.002186247,"2024-06-07","15:20:00",null,null,1]
     ]
   }],
+  selectedDatasetId: null
 }
 
 const dataSlice = createSlice({
@@ -35,11 +37,14 @@ const dataSlice = createSlice({
     },
     removeDataset: (state, action: PayloadAction<number>) => {
       state.datasets = state.datasets.filter(dataset => dataset.id !== action.payload)
-    }
+    },
+    setSelectedDatasetId: (state, action: PayloadAction<number|null>) => {
+      state.selectedDatasetId = action.payload
+    },
   },
 })
 
-export const { addDataset, removeDataset } = dataSlice.actions
+export const { addDataset, removeDataset, setSelectedDatasetId } = dataSlice.actions
 
 export const dataReducer = dataSlice.reducer
 export default dataReducer
