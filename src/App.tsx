@@ -43,7 +43,7 @@ const App: React.FC = () => {
         sx={{
           mt: 3,
           width: '100%',
-          height: 'calc(100vh - 110px)',
+          height: 'calc(100vh - 115px)',
           margin: '0 auto',
           padding: 2,
         }}

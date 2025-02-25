@@ -1,7 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState, AppDispatch } from '../store'
 import { addDataset, removeDataset } from '../features/dataSlice'
-import { Button, Typography, Box } from '@mui/material'
+import { Button, Typography, Box, Tooltip } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect } from 'react'
 
@@ -39,12 +39,60 @@ const DataPage: React.FC = () => {
     }
   }, [selectionModel, datasets])
 
+  const getColumnStats = (columnData: any[]) => {
+    const count = columnData.length
+    const mean = columnData.reduce((acc, val) => acc + val, 0) / count
+    const min = Math.min(...columnData)
+    const max = Math.max(...columnData)
+    return { count, mean, min, max }
+  }
+
+  const formatNumber = (num: number) => {
+    return num.toPrecision(3)
+  }
+
   const dataViewColumns: GridColDef[] = selectedDataset[0]
-    ? selectedDataset[0].map((col: string, index: number) => ({
-      field: `col${index}`,
-      headerName: col,
-      width: 150,
-    }))
+    ? selectedDataset[0].map((col: string, index: number) => {
+        const columnData = selectedDataset.slice(1).map(row => row[index])
+        const { count, mean, min, max } = getColumnStats(columnData)
+        const type = typeof columnData[0]
+        const tooltipTitle = (
+          <table>
+            <tbody>
+              <tr>
+                <td>Type:</td>
+                <td>{type}</td>
+              </tr>
+              <tr>
+                <td>Count:</td>
+                <td>{count}</td>
+              </tr>
+              <tr>
+                <td>Mean:</td>
+                <td>{isNaN(mean) ? 'N/A' : formatNumber(mean)}</td>
+              </tr>
+              <tr>
+                <td>Min:</td>
+                <td>{isNaN(min) ? 'N/A' : formatNumber(min)}</td>
+              </tr>
+              <tr>
+                <td>Max:</td>
+                <td>{isNaN(max) ? 'N/A' : formatNumber(max)}</td>
+              </tr>
+            </tbody>
+          </table>
+        )
+        return {
+          field: `col${index}`,
+          headerName: col,
+          width: 150,
+          renderHeader: (params: { colDef: GridColDef }) => (
+            <Tooltip title={tooltipTitle}>
+              <span>{params.colDef.headerName}</span>
+            </Tooltip>
+          ),
+        }
+      })
     : []
 
   const dataViewRows = selectedDataset.slice(1).map((row, index) => {
@@ -54,39 +102,6 @@ const DataPage: React.FC = () => {
     })
     return rowData
   })
-
-  const getColumnStats = (columnData: any[]) => {
-    const count = columnData.length
-    const mean = columnData.reduce((acc, val) => acc + val, 0) / count
-    const min = Math.min(...columnData)
-    const max = Math.max(...columnData)
-    return { count, mean, min, max }
-  }
-
-  const dataStatsColumns: GridColDef[] = [
-    { field: 'variable', headerName: 'Variable', width: 150 },
-    { field: 'type', headerName: 'Type', width: 100 },
-    { field: 'count', headerName: 'Count', width: 100 },
-    { field: 'mean', headerName: 'Mean', width: 100 },
-    { field: 'min', headerName: 'Min', width: 100 },
-    { field: 'max', headerName: 'Max', width: 100 },
-  ]
-
-  const dataStatsRows = selectedDataset[0]
-    ? selectedDataset[0].map((col: string, index: number) => {
-      const columnData = selectedDataset.slice(1).map(row => row[index])
-      const { count, mean, min, max } = getColumnStats(columnData)
-      return {
-        id: index,
-        variable: col,
-        type: typeof columnData[0],
-        count,
-        mean: isNaN(mean) ? 'N/A' : mean.toFixed(2),
-        min: isNaN(min) ? 'N/A' : min,
-        max: isNaN(max) ? 'N/A' : max,
-      }
-    })
-    : []
 
   return (
     <Box
@@ -114,50 +129,32 @@ const DataPage: React.FC = () => {
           </Button>
         </Box>
       </Box>
-      <Box sx={{ flex: 1, overflow: 'auto', mb: 4 }}>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          pagination
-          pageSizeOptions={[5]}
-          rowHeight={40}
-          checkboxSelection={false}
-          onRowSelectionModelChange={(newSelectionModel) => {
-            setSelectionModel(newSelectionModel)
-          }}
-          rowSelectionModel={selectionModel}
-          sx={{
-            '& .MuiDataGrid-row': {
-              maxHeight: '40px',
-              minHeight: '40px',
-            },
-            '& .MuiDataGrid-cell': {
-              padding: '4px',
-            },
-          }}
-        />
+      <Box sx={{ display: 'flex', flex: 1, overflow: 'auto', mb: 4 }}>
+        <Box sx={{ flex: 1, overflow: 'auto', mr: 2 }}>
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            pagination
+            pageSizeOptions={[5]}
+            rowHeight={40}
+            checkboxSelection={false}
+            onRowSelectionModelChange={(newSelectionModel) => {
+              setSelectionModel(newSelectionModel)
+            }}
+            rowSelectionModel={selectionModel}
+            sx={{
+              '& .MuiDataGrid-row': {
+                maxHeight: '40px',
+                minHeight: '40px',
+              },
+              '& .MuiDataGrid-cell': {
+                padding: '4px',
+              },
+            }}
+          />
+        </Box>
       </Box>
-      <Typography variant='h5' sx={{ mb: 2 }}>Variables</Typography>
-      <Box sx={{ flex: 1, overflow: 'auto', mb: 4 }}>
-        <DataGrid
-          rows={dataStatsRows}
-          columns={dataStatsColumns}
-          pagination
-          pageSizeOptions={[5]}
-          rowHeight={40}
-          checkboxSelection={false}
-          sx={{
-            '& .MuiDataGrid-row': {
-              maxHeight: '40px',
-              minHeight: '40px',
-            },
-            '& .MuiDataGrid-cell': {
-              padding: '4px',
-            },
-          }}
-        />
-      </Box>
-      <Typography variant='h5' sx={{ mb: 2 }}>View</Typography>
+      <Typography variant='h5' sx={{ mb: 2 }}>Data View</Typography>
       <Box sx={{ flex: 1, overflow: 'auto' }}>
         <DataGrid
           rows={dataViewRows}
