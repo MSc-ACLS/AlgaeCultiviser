@@ -41,11 +41,13 @@ const App: React.FC = () => {
       </AppBar>
       <Box
         sx={{
-          mt: 3,
+          mt: 3, // Margin at the top
           width: '100%',
-          height: 'calc(100vh - 115px)',
+          height: 'calc(100vh - 115px)', // Dynamically adjust height (AppBar + NavigationTabs = ~115px)
           margin: '0 auto',
-          padding: 2,
+          padding: 2, // Keep padding for consistent spacing
+          boxSizing: 'border-box', // Ensure padding is included in the height calculation
+          overflow: 'auto', // Allow scrolling if content overflows
         }}
       >
         <Routes>
