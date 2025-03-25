@@ -12,10 +12,16 @@ const DataPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>()
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
 
+  useEffect(() => {
+    if (selectedDatasetId !== null) {
+      setSelectionModel([selectedDatasetId])
+    }
+  }, [selectedDatasetId])
+
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 90 },
-    { field: 'columns', headerName: 'Number of Columns', width: 150 },
-    { field: 'rows', headerName: 'Number of Rows', width: 150 },
+    { field: 'columns', headerName: '# of Columns', width: 150 },
+    { field: 'rows', headerName: '# of Rows', width: 150 },
   ]
 
   const rows = datasets.map((dataset) => ({
@@ -123,7 +129,6 @@ const DataPage: React.FC = () => {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        //backgroundColor: '#a2d5ab',
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>

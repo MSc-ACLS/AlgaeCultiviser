@@ -16,7 +16,6 @@ const initialState: DataState = {
   selectedDatasetId: null
 }
 
-// Async thunk to load initial data
 export const loadInitialData = createAsyncThunk('data/loadInitialData', async () => {
   const response = await fetch('/data/testdata100.csv')
   const fileContent = await response.text()

@@ -51,10 +51,8 @@ const AnalysePage: React.FC = () => {
         flexDirection: 'column',
       }}
     >
-      {/* Title */}
       <Typography variant='h5' sx={{ mb: 2 }}>Analyse</Typography>
 
-      {/* Checkboxes */}
       <Box sx={{ display: 'flex', flexDirection: 'row', mb: 2, flexWrap: 'wrap' }}>
         {selectedDataset &&
           selectedDataset.data[0].map((variable: string) => (
@@ -151,13 +149,27 @@ const AnalysePage: React.FC = () => {
               ],
             },
           ]}
-          tooltip={({ point }) => (
-            <div style={{background: 'white'}}>
-              <strong>Variable:</strong> {point.serieId} <br />
-              <strong>Time:</strong> {(point.data.xFormatted || point.data.x)?.toString()} <br />
-              <strong>Value:</strong> {(point.data.yFormatted || point.data.y)?.toString()}
-            </div>
-          )}
+          tooltip={({ point }) => {
+            const isCursorLow = point.y > 100 // Adjust this threshold based on your graph's scale
+            return (
+              <Box
+                sx={{
+                  background: 'white',
+                  border: '1px solid #ccc',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  textAlign: 'left',
+                  transform: isCursorLow ? 'translateY(0)' : 'translateY(+150%)',
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                  {point.serieId}
+                </Typography>
+                <Typography variant="body2">Time: {(point.data.xFormatted || point.data.x)?.toString()}</Typography>
+                <Typography variant="body2">Value: {(point.data.yFormatted || point.data.y)?.toString()}</Typography>
+              </Box>
+            )
+          }}
         />
       </Box>
     </Box>
