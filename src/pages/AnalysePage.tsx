@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux'
 import { RootState } from '../store'
 import { ResponsiveLineCanvas } from '@nivo/line'
 import { useState, useMemo, useEffect } from 'react'
+import { parse } from 'date-fns'
 
 const AnalysePage: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
@@ -34,12 +35,16 @@ const AnalysePage: React.FC = () => {
   // Transform the data for the Nivo chart
   const data = useMemo(() => {
     if (!selectedDataset) return []
-    return selectedDataset.data[0].map((variable: string, index: number) => ({
+
+    return selectedDataset.data[0].slice(1).map((variable: string, index: number) => ({
       id: variable,
-      data: selectedDataset.data.slice(1).map((row: any[], rowIndex: number) => ({
-        x: rowIndex,
-        y: row[index] === "NA" || isNaN(row[index]) ? null : row[index], // Replace "NA" or invalid values with null
-      })),
+      data: selectedDataset.data.slice(1).map((row) => {
+        const x = row[0] // Use the ISO string directly from the Redux state
+        const y = row[index + 1] === "NA" || isNaN(row[index + 1]) ? null : row[index + 1] // Skip invalid values
+
+        // Ensure x is a valid ISO string and y is not null
+        return x && !isNaN(Date.parse(x)) && y !== null ? { x, y } : null
+      }).filter((point) => point !== null), // Filter out invalid points
     }))
   }, [selectedDataset])
 
@@ -55,7 +60,7 @@ const AnalysePage: React.FC = () => {
 
       <Box sx={{ display: 'flex', flexDirection: 'row', mb: 2, flexWrap: 'wrap' }}>
         {selectedDataset &&
-          selectedDataset.data[0].map((variable: string) => (
+          selectedDataset.data[0].slice(1).map((variable: string) => ( // Skip the first column
             <FormControlLabel
               key={variable}
               control={
@@ -79,7 +84,12 @@ const AnalysePage: React.FC = () => {
         <ResponsiveLineCanvas
           data={data.filter((d: { id: string }) => visibleLines[d.id] !== false)}
           margin={{ top: 100, right: 200, bottom: 40, left: 50 }}
-          xScale={{ type: 'point' }}
+          xScale={{
+            type: 'time', // Use time scale for x-axis
+            format: '%Y-%m-%dT%H:%M:%S.%LZ', // ISO string format
+            precision: 'minute', // Adjust precision as needed
+          }}
+          xFormat="time:%d.%m.%Y %H:%M" // Format for tooltip and axis labels
           yScale={{
             type: 'linear',
             min: 'auto',
@@ -87,17 +97,13 @@ const AnalysePage: React.FC = () => {
             stacked: false,
             reverse: false,
           }}
-          axisTop={null}
-          axisRight={null}
           axisBottom={{
             tickSize: 0,
             tickPadding: 5,
-            legend: 'Index',
+            legend: 'Time',
             legendOffset: 30,
             legendPosition: 'middle',
-            tickValues: data[0]?.data
-              ? Array.from({ length: 10 }, (_, i) => Math.floor((i * data[0].data.length) / 10))
-              : [],
+            format: '%d.%m.%Y %H:%M', // Format for x-axis ticks
           }}
           axisLeft={{
             tickSize: 0,
@@ -150,7 +156,7 @@ const AnalysePage: React.FC = () => {
             },
           ]}
           tooltip={({ point }) => {
-            const isCursorLow = point.y > 100 // Adjust this threshold based on your graph's scale
+            const isCursorLow = point.y > 100
             return (
               <Box
                 sx={{
@@ -159,13 +165,13 @@ const AnalysePage: React.FC = () => {
                   borderRadius: '8px',
                   padding: '8px',
                   textAlign: 'left',
-                  transform: isCursorLow ? 'translateY(0)' : 'translateY(+150%)',
+                  transform: isCursorLow ? null : 'translateY(+150%)'
                 }}
               >
                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
                   {point.serieId}
                 </Typography>
-                <Typography variant="body2">Time: {(point.data.xFormatted || point.data.x)?.toString()}</Typography>
+                <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
                 <Typography variant="body2">Value: {(point.data.yFormatted || point.data.y)?.toString()}</Typography>
               </Box>
             )

@@ -1,9 +1,11 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
 import Papa from 'papaparse'
+import { parseDataset } from '../utils/parseDataset'
 
 interface Dataset {
   id: number
-  data: any[]
+  data: any[] // The dataset content
+  filename: string // The filename of the dataset
 }
 
 interface DataState {
@@ -17,7 +19,7 @@ const initialState: DataState = {
 }
 
 export const loadInitialData = createAsyncThunk('data/loadInitialData', async () => {
-  const response = await fetch('/data/testdata100.csv')
+  const response = await fetch('/data/datazhaw100.csv')
   const fileContent = await response.text()
   let parsedData: any[] = []
   Papa.parse(fileContent, {
@@ -26,9 +28,14 @@ export const loadInitialData = createAsyncThunk('data/loadInitialData', async ()
     },
     header: false,
   })
+
+  // Apply parseDataset to ensure the data is in the correct format
+  const parsedDataset = parseDataset(parsedData, 'dd.MM.yyyy HH:mm')
+
   return [{
     id: 0,
-    data: parsedData
+    data: parsedDataset,
+    filename: 'datazhaw100.csv' // Store the filename
   }]
 })
 
@@ -36,9 +43,20 @@ const dataSlice = createSlice({
   name: "data",
   initialState,
   reducers: {
-    addDataset: (state, action: PayloadAction<any[]>) => {
-      const nextId = state.datasets.length > 0 ? Math.max(...state.datasets.map(dataset => dataset.id)) + 1 : 1;
-      state.datasets.push({ id: nextId, data: action.payload });
+    addDataset: (state, action: PayloadAction<{ data: any[]; filename: string }>) => {
+      try {
+        // Parse the dataset before adding it to the state
+        const parsedData = parseDataset(action.payload.data, 'dd.MM.yyyy HH:mm')
+
+        const newDataset: Dataset = {
+          id: state.datasets.length > 0 ? state.datasets[state.datasets.length - 1].id + 1 : 1,
+          data: parsedData,
+          filename: action.payload.filename,
+        }
+        state.datasets.push(newDataset)
+      } catch (error) {
+        console.error('Error parsing dataset in reducer:', error)
+      }
     },
     removeDataset: (state, action: PayloadAction<number>) => {
       state.datasets = state.datasets.filter(dataset => dataset.id !== action.payload)

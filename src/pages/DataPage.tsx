@@ -5,6 +5,7 @@ import { Button, Typography, Box, Tooltip } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect } from 'react'
 import Papa from 'papaparse'
+import { parseDataset } from '../utils/parseDataset'
 
 const DataPage: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
@@ -12,6 +13,8 @@ const DataPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>()
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
 
+  console.log(datasets)
+  
   useEffect(() => {
     if (selectedDatasetId !== null) {
       setSelectionModel([selectedDatasetId])
@@ -20,12 +23,14 @@ const DataPage: React.FC = () => {
 
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 90 },
+    { field: 'filename', headerName: 'Filename', width: 200 },
     { field: 'columns', headerName: '# of Columns', width: 150 },
     { field: 'rows', headerName: '# of Rows', width: 150 },
   ]
 
   const rows = datasets.map((dataset) => ({
     id: dataset.id,
+    filename: dataset.filename,
     columns: dataset.data[0]?.length || 0,
     rows: dataset.data.length,
   }))
@@ -61,34 +66,63 @@ const DataPage: React.FC = () => {
   const dataViewColumns: GridColDef[] = selectedDataset && selectedDataset.data[0]
     ? selectedDataset.data[0].map((col: string, index: number) => {
         const columnData = selectedDataset.data.slice(1).map(row => row[index])
-        const { count, mean, min, max } = getColumnStats(columnData)
-        const type = typeof columnData[0]
+
+        // Detect if the column contains ISO date strings
+        const isDateColumn = columnData.every(
+          (value) => typeof value === 'string' && !isNaN(Date.parse(value))
+        )
+
+        const { count, mean, min, max } = getColumnStats(
+          isDateColumn ? columnData.map((value) => new Date(value).getTime()) : columnData
+        )
+
+        const type = isDateColumn ? 'Date' : typeof columnData[0]
+
         const tooltipTitle = (
           <table>
             <tbody>
               <tr>
-            <td>Type:</td>
+                <td>Type:</td>
                 <td>{type}</td>
-            </tr>
+              </tr>
               <tr>
                 <td>Count:</td>
                 <td>{count}</td>
-            </tr>
+              </tr>
               <tr>
                 <td>Mean:</td>
-                <td>{isNaN(mean) ? 'N/A' : formatNumber(mean)}</td>
-            </tr>
+                <td>
+                  {isNaN(mean)
+                    ? 'N/A'
+                    : isDateColumn
+                    ? new Date(mean).toLocaleString()
+                    : formatNumber(mean)}
+                </td>
+              </tr>
               <tr>
                 <td>Min:</td>
-                <td>{isNaN(min) ? 'N/A' : formatNumber(min)}</td>
-            </tr>
+                <td>
+                  {isNaN(min)
+                    ? 'N/A'
+                    : isDateColumn
+                    ? new Date(min).toLocaleString()
+                    : formatNumber(min)}
+                </td>
+              </tr>
               <tr>
                 <td>Max:</td>
-                <td>{isNaN(max) ? 'N/A' : formatNumber(max)}</td>
-          </tr>
+                <td>
+                  {isNaN(max)
+                    ? 'N/A'
+                    : isDateColumn
+                    ? new Date(max).toLocaleString()
+                    : formatNumber(max)}
+                </td>
+              </tr>
             </tbody>
           </table>
         )
+
         return {
           field: `col${index}`,
           headerName: col,
@@ -102,21 +136,39 @@ const DataPage: React.FC = () => {
       })
     : []
 
-  const dataViewRows = selectedDataset ? selectedDataset.data.slice(1).map((row, index) => {
-    const rowData: { [key: string]: any } = { id: index }
-    row.forEach((cell: any, cellIndex: number) => {
-      rowData[`col${cellIndex}`] = cell
-    })
-    return rowData
-  }) : []
+  const dataViewRows = selectedDataset
+    ? selectedDataset.data.slice(1).map((row, index) => {
+        const rowData: { [key: string]: any } = { id: index }
+        row.forEach((cell: any, cellIndex: number) => {
+          const header = selectedDataset.data[0][cellIndex]
+          if (cellIndex === 0 && typeof cell === 'string' && !isNaN(Date.parse(cell))) {
+            // Convert ISO string back to a readable date format
+            rowData[`col${cellIndex}`] = new Date(cell).toLocaleString()
+          } else {
+            rowData[`col${cellIndex}`] = cell
+          }
+        })
+        return rowData
+      })
+    : []
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
       Papa.parse(file, {
         complete: (result) => {
-          const data = result.data as any[]
-          dispatch(addDataset(data))
+          const rawData = result.data as any[]
+          if (rawData.length > 1) {
+            try {
+              // Use the parseDataset utility function
+              const data = parseDataset(rawData, 'dd.MM.yyyy HH:mm')
+
+              // Dispatch the dataset to the Redux store
+              dispatch(addDataset({ data, filename: file.name }))
+            } catch (error) {
+              console.error('Error parsing dataset:', error)
+            }
+          }
         },
         header: false,
       })
