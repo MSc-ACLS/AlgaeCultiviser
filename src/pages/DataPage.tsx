@@ -4,6 +4,7 @@ import { addDataset, removeDataset, setSelectedDatasetId } from '../features/dat
 import { Button, Typography, Box, Tooltip } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import Papa from 'papaparse'
 import { parseDataset } from '../utils/parseDataset'
 import { parse, isValid } from 'date-fns'
@@ -27,6 +28,48 @@ const DataPage: React.FC = () => {
     { field: 'filename', headerName: 'Filename', width: 200 },
     { field: 'columns', headerName: '# of Columns', width: 150 },
     { field: 'rows', headerName: '# of Rows', width: 150 },
+    {
+      field: 'timeSeries',
+      headerName: 'Time Series',
+      width: 150,
+      renderCell: () => (
+        <Box
+          sx={{
+            display: 'flex',
+          }}
+        >
+          <Button
+            variant="contained"
+            size="small"
+            component={Link}
+            to="/analyse"
+          >
+            Analyse
+          </Button>
+        </Box>
+      ),
+    },
+    {
+      field: 'correlations',
+      headerName: 'Correlations',
+      width: 150,
+      renderCell: () => (
+        <Box
+          sx={{
+            display: 'flex',
+          }}
+        >
+          <Button
+            variant="contained"
+            size="small"
+            component={Link}
+            to="/analyse/correlations"
+          >
+            Analyse
+          </Button>
+        </Box>
+      ),
+    },
   ]
 
   const rows = datasets.map((dataset) => ({
@@ -34,6 +77,7 @@ const DataPage: React.FC = () => {
     filename: dataset.filename,
     columns: dataset.data[0]?.length || 0,
     rows: dataset.data.length,
+    timeSeries: 'link'
   }))
 
   const handleRemoveDataset = () => {

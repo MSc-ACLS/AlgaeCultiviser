@@ -4,8 +4,9 @@ import { RootState } from '../store'
 import { ResponsiveLineCanvas } from '@nivo/line'
 import { useState, useMemo, useEffect } from 'react'
 import { parse, isValid } from 'date-fns'
+import { useTheme } from '@mui/material/styles'
 
-const AnalysePage: React.FC = () => {
+const AnalyseTimeseries: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
   const selectedDatasetId = useSelector((state: RootState) => state.data.selectedDatasetId)
   const selectedDataset = selectedDatasetId !== null ? datasets.find(dataset => dataset.id === selectedDatasetId) : null
@@ -95,6 +96,8 @@ const AnalysePage: React.FC = () => {
     return normalizeData(rawData)
   }, [selectedDataset])
 
+  const theme = useTheme()
+
   return (
     <Box
       sx={{
@@ -103,7 +106,7 @@ const AnalysePage: React.FC = () => {
         flexDirection: 'column',
       }}
     >
-      <Typography variant='h5' sx={{ mb: 2 }}>Analyse</Typography>
+      <Typography variant='h5' sx={{ mb: 2 }}>Time</Typography>
 
       <Box sx={{ display: 'flex', flexDirection: 'row', mb: 2, flexWrap: 'wrap' }}>
         {selectedDataset &&
@@ -151,6 +154,7 @@ const AnalysePage: React.FC = () => {
             legendOffset: 30,
             legendPosition: 'middle',
             format: '%d.%m.%Y %H:%M',
+            tickValues: 5,
           }}
           axisLeft={{
             tickSize: 0,
@@ -159,7 +163,8 @@ const AnalysePage: React.FC = () => {
             legendOffset: -40,
             legendPosition: 'middle',
           }}
-          colors={{scheme: 'nivo'}}
+          colors={{ scheme: 'category10' }}
+          curve='natural'
           enableGridX={false}
           enableGridY={false}
           pointSize={0}
@@ -198,7 +203,7 @@ const AnalysePage: React.FC = () => {
                   borderRadius: '8px',
                   padding: '8px',
                   textAlign: 'left',
-                  transform: isCursorLow ? null : 'translateY(+150%)'
+                  transform: isCursorLow ? null : 'translateY(+150%)',
                 }}
               >
                 <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
@@ -209,10 +214,24 @@ const AnalysePage: React.FC = () => {
               </Box>
             )
           }}
+          theme={{
+            axis: {
+              ticks: {
+                text: {
+                  fill: theme.palette.text.primary,
+                },
+              },
+              legend: {
+                text: {
+                  fill: theme.palette.text.primary,
+                },
+              },
+            },
+          }}
         />
       </Box>
     </Box>
   )
 }
 
-export default AnalysePage
+export default AnalyseTimeseries

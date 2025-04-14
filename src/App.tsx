@@ -5,11 +5,12 @@ import { CssBaseline, AppBar, Toolbar, IconButton, Typography, Tooltip, Box } fr
 import CloudDownloadTwoToneIcon from '@mui/icons-material/CloudDownloadTwoTone'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import DataPage from './pages/DataPage'
-import AnalysePage from './pages/AnalysePage'
 import OptimisePage from './pages/OptimisePage'
 import NavigationTabs from './components/NavigationTabs'
 import { selectTheme, LIGHT_THEME, DARK_THEME } from './theme/selectors'
 import ThemeToggleButton from './components/ThemeToggleButton'
+import AnalyseTimeseries from './pages/AnalyseTimeseries'
+import AnalyseCorrelations from './pages/AnalyseCorrelations'
 
 const App: React.FC = () => {
   const themeMode = useSelector(selectTheme) // 'light' or 'dark'
@@ -61,7 +62,8 @@ const App: React.FC = () => {
         >
           <Routes>
             <Route path='/' element={<DataPage />} />
-            <Route path='/analyse' element={<AnalysePage />} />
+            <Route path='/analyse' element={<AnalyseTimeseries />} />
+            <Route path='/analyse/correlations' element={<AnalyseCorrelations />} />
             <Route path='/optimise' element={<OptimisePage />} />
           </Routes>
         </Box>

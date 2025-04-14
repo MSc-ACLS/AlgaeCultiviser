@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { toggleTheme } from '../theme/themeSlice'
 import { selectTheme } from '../theme/selectors'
 import { IconButton, Tooltip } from '@mui/material'
-import ScienceTwoToneIcon from '@mui/icons-material/ScienceTwoTone'
 
 import LightModeTwoToneIcon from '@mui/icons-material/LightModeTwoTone';
 import DarkModeTwoToneIcon from '@mui/icons-material/DarkModeTwoTone';
