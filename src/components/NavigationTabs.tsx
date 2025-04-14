@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Tabs, Tab, Box } from '@mui/material'
+import { Tabs, Tab, Box, useTheme } from '@mui/material'
 
 const NavigationTabs: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const theme = useTheme() // Access the current theme
 
   // Define tab mapping for routes
   const tabMapping: { [key: string]: number } = {
@@ -22,7 +23,12 @@ const NavigationTabs: React.FC = () => {
   }
 
   return (
-    <Box sx={{ backgroundColor: 'white', width: '100%' }}>
+    <Box
+      sx={{
+        width: '100%',
+        backgroundColor: theme.palette.background.paper,
+      }}
+    >
       <Tabs value={selectedTab} onChange={handleChange} centered>
         <Tab label='Data' />
         <Tab label='Analyse' />

@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit'
 import dataReducer, { loadInitialData } from '../features/dataSlice'
+import { themeReducer } from '../theme/themeSlice'
 
 const store = configureStore({
   reducer: {
     data: dataReducer,
+    theme: themeReducer,
   },
 })
 
