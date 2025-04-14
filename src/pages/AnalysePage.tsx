@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 import { RootState } from '../store'
 import { ResponsiveLineCanvas } from '@nivo/line'
 import { useState, useMemo, useEffect } from 'react'
-import { parse } from 'date-fns'
+import { parse, isValid } from 'date-fns'
 
 const AnalysePage: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
@@ -32,20 +32,67 @@ const AnalysePage: React.FC = () => {
     }))
   }
 
-  // Transform the data for the Nivo chart
+  const normalizeData = (data: any[]) => {
+    const normalizedData = data.map((variableData: { id: string; data: { x: Date; y: number }[] }) => {
+      const yValues = variableData.data.map((point) => point.y).filter((y) => y !== null)
+      const min = Math.min(...yValues)
+      const max = Math.max(...yValues)
+
+      return {
+        id: variableData.id,
+        data: variableData.data.map((point) => {
+          if (!point.x || isNaN(point.x.getTime()) || point.y === null) {
+            console.warn(`Invalid normalized point skipped: x=${point.x}, y=${point.y}`)
+            return null
+          }
+
+          return {
+            x: point.x,
+            originalY: point.y,
+            y: (point.y - min) / (max - min),
+          }
+        }).filter((point) => point !== null),
+      }
+    })
+
+    return normalizedData
+  }
+
   const data = useMemo(() => {
     if (!selectedDataset) return []
 
-    return selectedDataset.data[0].slice(1).map((variable: string, index: number) => ({
+    const rawData = selectedDataset.data[0].slice(1).map((variable: string, index: number) => ({
       id: variable,
       data: selectedDataset.data.slice(1).map((row) => {
-        const x = row[0] // Use the ISO string directly from the Redux state
-        const y = row[index + 1] === "NA" || isNaN(row[index + 1]) ? null : row[index + 1] // Skip invalid values
+        const x = row[0]
+        const y = row[index + 1] === "NA" || isNaN(row[index + 1]) ? null : row[index + 1]
 
-        // Ensure x is a valid ISO string and y is not null
-        return x && !isNaN(Date.parse(x)) && y !== null ? { x, y } : null
+        // Detect if the date is already in ISO format
+        const isISODate = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(x)
+
+        let parsedDate
+        if (isISODate) {
+          // Parse ISO date directly
+          parsedDate = new Date(x)
+        } else {
+          // Normalize the date to ensure milliseconds are valid
+          const normalizedDate = x.trim().replace(/(\.\d{1,2})$/, (match: string) => match.padEnd(4, '0'))
+
+          // Parse the date using date-fns
+          parsedDate = parse(normalizedDate, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
+        }
+
+        if (!isValid(parsedDate) || y === null) {
+          console.warn(`Invalid data point skipped: raw=${x}, parsed=${parsedDate}`)
+          return null
+        }
+
+        return { x: parsedDate, y }
       }).filter((point) => point !== null), // Filter out invalid points
     }))
+
+    console.log('Parsed raw data:', rawData)
+    return normalizeData(rawData)
   }, [selectedDataset])
 
   return (
@@ -85,11 +132,11 @@ const AnalysePage: React.FC = () => {
           data={data.filter((d: { id: string }) => visibleLines[d.id] !== false)}
           margin={{ top: 100, right: 200, bottom: 40, left: 50 }}
           xScale={{
-            type: 'time', // Use time scale for x-axis
-            format: '%Y-%m-%dT%H:%M:%S.%LZ', // ISO string format
-            precision: 'minute', // Adjust precision as needed
+            type: 'time',
+            format: '%Y-%m-%dT%H:%M:%S.%LZ',
+            precision: 'minute',
           }}
-          xFormat="time:%d.%m.%Y %H:%M" // Format for tooltip and axis labels
+          xFormat="time:%d.%m.%Y %H:%M"
           yScale={{
             type: 'linear',
             min: 'auto',
@@ -103,30 +150,16 @@ const AnalysePage: React.FC = () => {
             legend: 'Time',
             legendOffset: 30,
             legendPosition: 'middle',
-            format: '%d.%m.%Y %H:%M', // Format for x-axis ticks
+            format: '%d.%m.%Y %H:%M',
           }}
           axisLeft={{
             tickSize: 0,
             tickPadding: 5,
-            legend: 'Value',
+            legend: 'Norm. Value',
             legendOffset: -40,
             legendPosition: 'middle',
           }}
-          colors={[
-            "#00796b",
-            "#228e78",
-            "#3aa384",
-            "#52b890",
-            "#6ace9b",
-            "#84e4a5",
-            "#a0f9af",
-            "#9ff79c",
-            "#a2f488",
-            "#a7f073",
-            "#aeec5b",
-            "#b6e740",
-            "#c0e218",
-          ]}
+          colors={{scheme: 'nivo'}}
           enableGridX={false}
           enableGridY={false}
           pointSize={0}
@@ -135,7 +168,7 @@ const AnalysePage: React.FC = () => {
               anchor: 'right',
               direction: 'column',
               justify: false,
-              translateX: 100,
+              translateX: 120,
               translateY: 0,
               itemWidth: 100,
               itemHeight: 20,
@@ -157,11 +190,11 @@ const AnalysePage: React.FC = () => {
           ]}
           tooltip={({ point }) => {
             const isCursorLow = point.y > 100
+            const originalY = (point.data as any).originalY
             return (
               <Box
                 sx={{
-                  background: 'white',
-                  border: '1px solid #ccc',
+                  background: point.serieColor,
                   borderRadius: '8px',
                   padding: '8px',
                   textAlign: 'left',
@@ -172,7 +205,7 @@ const AnalysePage: React.FC = () => {
                   {point.serieId}
                 </Typography>
                 <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
-                <Typography variant="body2">Value: {(point.data.yFormatted || point.data.y)?.toString()}</Typography>
+                <Typography variant="body2">Value: {originalY?.toString()}</Typography>
               </Box>
             )
           }}

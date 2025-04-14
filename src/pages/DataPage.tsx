@@ -6,6 +6,7 @@ import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect } from 'react'
 import Papa from 'papaparse'
 import { parseDataset } from '../utils/parseDataset'
+import { parse, isValid } from 'date-fns'
 
 const DataPage: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
@@ -69,11 +70,11 @@ const DataPage: React.FC = () => {
 
         // Detect if the column contains ISO date strings
         const isDateColumn = columnData.every(
-          (value) => typeof value === 'string' && !isNaN(Date.parse(value))
+          (value) => typeof value === 'string' && isValid(parse(value, 'dd.MM.yyyy HH:mm:ss.SSS', new Date()))
         )
 
         const { count, mean, min, max } = getColumnStats(
-          isDateColumn ? columnData.map((value) => new Date(value).getTime()) : columnData
+          isDateColumn ? columnData.map((value) => parse(value, 'dd.MM.yyyy HH:mm:ss.SSS', new Date()).getTime()) : columnData
         )
 
         const type = isDateColumn ? 'Date' : typeof columnData[0]
@@ -161,7 +162,7 @@ const DataPage: React.FC = () => {
           if (rawData.length > 1) {
             try {
               // Use the parseDataset utility function
-              const data = parseDataset(rawData, 'dd.MM.yyyy HH:mm')
+              const data = parseDataset(rawData, 'dd.MM.yyyy HH:mm:ss.SSS')
 
               // Dispatch the dataset to the Redux store
               dispatch(addDataset({ data, filename: file.name }))

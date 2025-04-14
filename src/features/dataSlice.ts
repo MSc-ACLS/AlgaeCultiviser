@@ -30,7 +30,7 @@ export const loadInitialData = createAsyncThunk('data/loadInitialData', async ()
   })
 
   // Apply parseDataset to ensure the data is in the correct format
-  const parsedDataset = parseDataset(parsedData, 'dd.MM.yyyy HH:mm')
+  const parsedDataset = parseDataset(parsedData, 'dd.MM.yyyy HH:mm:ss.SSS')
 
   return [{
     id: 0,
@@ -46,7 +46,7 @@ const dataSlice = createSlice({
     addDataset: (state, action: PayloadAction<{ data: any[]; filename: string }>) => {
       try {
         // Parse the dataset before adding it to the state
-        const parsedData = parseDataset(action.payload.data, 'dd.MM.yyyy HH:mm')
+        const parsedData = parseDataset(action.payload.data, 'dd.MM.yyyy HH:mm:ss.SSS')
 
         const newDataset: Dataset = {
           id: state.datasets.length > 0 ? state.datasets[state.datasets.length - 1].id + 1 : 1,

@@ -6,7 +6,7 @@ import { parse, isValid } from 'date-fns'
  * @param dateFormat The expected date format in the first column.
  * @returns The parsed dataset.
  */
-export const parseDataset = (rawData: any[], dateFormat: string = 'dd.MM.yyyy HH:mm') => {
+export const parseDataset = (rawData: any[], dateFormat: string = 'dd.MM.yyyy HH:mm:ss.SSS') => {
   if (rawData.length < 2) {
     throw new Error('Dataset must have at least a header row and one data row.')
   }
