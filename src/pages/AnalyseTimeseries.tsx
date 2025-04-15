@@ -262,6 +262,7 @@ const AnalyseTimeseries: React.FC = () => {
               right: 10,
               zIndex: 10,
             }}
+            color='primary'
           >
             <DownloadForOfflineTwoToneIcon fontSize="large" />
           </IconButton>

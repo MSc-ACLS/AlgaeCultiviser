@@ -1,10 +1,10 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState, AppDispatch } from '../store'
 import { addDataset, removeDataset, setSelectedDatasetId } from '../features/dataSlice'
-import { Button, Typography, Box, Tooltip } from '@mui/material'
+import { Button, Typography, Box, Tooltip, Checkbox } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import { parseDataset } from '../utils/parseDataset'
 import { parse, isValid } from 'date-fns'
@@ -14,14 +14,26 @@ const DataPage: React.FC = () => {
   const selectedDatasetId = useSelector((state: RootState) => state.data.selectedDatasetId)
   const dispatch = useDispatch<AppDispatch>()
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
+  const [compareSelection, setCompareSelection] = useState<number[]>([])
+  const navigate = useNavigate()
 
-  console.log(datasets)
-  
   useEffect(() => {
     if (selectedDatasetId !== null) {
       setSelectionModel([selectedDatasetId])
     }
   }, [selectedDatasetId])
+
+  const handleCompareChange = (id: number) => {
+    setCompareSelection((prev) =>
+      prev.includes(id) ? prev.filter((selectedId) => selectedId !== id) : [...prev, id]
+    )
+  }
+
+  const handleCompare = () => {
+    if (compareSelection.length > 1) {
+      navigate('/compare', { state: { selectedIds: compareSelection } })
+    }
+  }
 
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 90 },
@@ -32,29 +44,44 @@ const DataPage: React.FC = () => {
       field: 'analyse',
       headerName: 'Analyse',
       width: 250,
-      renderCell: () => (
-          <Box
-            sx={{
-              display: 'flex', gap: 1
-            }}
-          >
-            <Button
-              variant="contained"
-              size="small"
-              component={Link}
-              to="/analyse"
-            >
-              Time Series
-            </Button>
-            <Button
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
             variant="contained"
             size="small"
-            component={Link}
-            to="/analyse/correlations"
+            onClick={() => {
+              dispatch(setSelectedDatasetId(params.row.id)) // Set the selected dataset
+              navigate('/analyse') // Navigate to the "Analyse" page
+            }}
+          >
+            Time Series
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => {
+              dispatch(setSelectedDatasetId(params.row.id)) // Set the selected dataset
+              navigate('/analyse/correlations') // Navigate to the "Correlation" page
+            }}
           >
             Correlation
           </Button>
-          </Box>
+        </Box>
+      ),
+    },
+    {
+      field: 'compare',
+      headerName: 'Compare',
+      width: 150,
+      renderCell: (params) => (
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', height: '100%'}}
+        >
+          <Checkbox
+            checked={compareSelection.includes(params.row.id)}
+            onChange={() => handleCompareChange(params.row.id)}
+          />
+        </Box>
       ),
     },
   ]
@@ -97,9 +124,8 @@ const DataPage: React.FC = () => {
 
   const dataViewColumns: GridColDef[] = selectedDataset && selectedDataset.data[0]
     ? selectedDataset.data[0].map((col: string, index: number) => {
-        const columnData = selectedDataset.data.slice(2).map(row => row[index]) // Skip the second row (units)
+        const columnData = selectedDataset.data.slice(2).map(row => row[index])
 
-        // Detect if the column contains ISO date strings
         const isDateColumn = columnData.every(
           (value) => typeof value === 'string' && isValid(parse(value, 'dd.MM.yyyy HH:mm:ss.SSS', new Date()))
         )
@@ -110,7 +136,6 @@ const DataPage: React.FC = () => {
 
         const type = isDateColumn ? 'Date' : typeof columnData[0]
 
-        // Get the unit from the second row
         const unit = selectedDataset.data[1]?.[index] || ''
 
         const tooltipTitle = (
@@ -160,7 +185,7 @@ const DataPage: React.FC = () => {
 
         return {
           field: `col${index}`,
-          headerName: `${col} [${unit}]`, // Add the unit to the header
+          headerName: `${col} [${unit}]`,
           width: 150,
           renderHeader: (params: { colDef: GridColDef }) => (
             <Tooltip title={tooltipTitle}>
@@ -172,11 +197,10 @@ const DataPage: React.FC = () => {
     : []
 
   const dataViewRows = selectedDataset
-    ? selectedDataset.data.slice(2).map((row, index) => { // Skip the second row (units)
+    ? selectedDataset.data.slice(2).map((row, index) => {
         const rowData: { [key: string]: any } = { id: index }
         row.forEach((cell: any, cellIndex: number) => {
           if (cellIndex === 0 && typeof cell === 'string' && !isNaN(Date.parse(cell))) {
-            // Convert ISO string back to a readable date format
             rowData[`col${cellIndex}`] = new Date(cell).toLocaleString()
           } else {
             rowData[`col${cellIndex}`] = cell
@@ -218,6 +242,13 @@ const DataPage: React.FC = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant='h5'>Datasets</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="contained"
+            onClick={handleCompare}
+            disabled={compareSelection.length <= 1}
+          >
+            Compare
+          </Button>
           <Button
             variant='contained'
             component='label'
