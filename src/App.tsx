@@ -41,7 +41,7 @@ const App: React.FC = () => {
 
             <Box sx={{ flexGrow: 1 }} />
             <Tooltip title='Download Data'>
-              <IconButton color='inherit'>
+              <IconButton color='inherit' disabled >
                 <CloudDownloadTwoToneIcon />
               </IconButton>
             </Tooltip>

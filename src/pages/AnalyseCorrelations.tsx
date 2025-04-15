@@ -1,9 +1,12 @@
-import { Box, Typography, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent } from '@mui/material'
-import { useSelector } from 'react-redux'
+import { Box, Typography, FormControl, Select, MenuItem, SelectChangeEvent, Tooltip, IconButton } from '@mui/material'
+import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
+import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../store'
 import { ResponsiveScatterPlotCanvas } from '@nivo/scatterplot'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useTheme } from '@mui/material/styles'
+import html2canvas from 'html2canvas'
+import { handleDownloadChart } from '../utils/downloadChart'
 
 const AnalyseCorrelations: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
@@ -19,6 +22,10 @@ const AnalyseCorrelations: React.FC = () => {
   const unitY = yVariable && selectedDataset?.data[1][selectedDataset.data[0].indexOf(yVariable)]
     ? `[${selectedDataset.data[1][selectedDataset.data[0].indexOf(yVariable)]}]`
     : ''
+
+  const chartRef = useRef<HTMLDivElement>(null)
+  const dispatch = useDispatch()
+  const currentTheme = useSelector((state: RootState) => state.theme)
 
   useEffect(() => {
     if (selectedDataset) {
@@ -75,6 +82,10 @@ const AnalyseCorrelations: React.FC = () => {
 
   const theme = useTheme()
 
+  const handleDownload = async () => {
+    await handleDownloadChart(chartRef, 'correlations-chart.png', currentTheme,  dispatch)
+  }
+
   return (
     <Box
       sx={{
@@ -116,64 +127,92 @@ const AnalyseCorrelations: React.FC = () => {
           flex: 1,
           width: '100%',
           overflow: 'hidden',
+          position: 'relative',
         }}
       >
-        <ResponsiveScatterPlotCanvas
-          data={scatterData}
-          margin={{ top: 40, right: 40, bottom: 60, left: 60 }}
-          xScale={{ type: 'linear', min: axisRanges.xMin, max: axisRanges.xMax }}
-          yScale={{ type: 'linear', min: axisRanges.yMin, max: axisRanges.yMax }}
-          axisBottom={{
-            tickSize: 5,
-            tickPadding: 5,
-            legend: `${xVariable || 'X Axis'} ${unitX}`,
-            legendPosition: 'middle',
-            legendOffset: 40,
+        <Box
+          ref={chartRef}
+          sx={{
+            height: '100%',
+            width: '100%',
           }}
-          axisLeft={{
-            tickSize: 5,
-            tickPadding: 5,
-            legend: `${yVariable || 'Y Axis'} ${unitY}`,
-            legendPosition: 'middle',
-            legendOffset: -50,
-          }}
-          theme={{
-            axis: {
-              ticks: {
-                text: {
-                  fill: theme.palette.text.primary,
+        >
+          <ResponsiveScatterPlotCanvas
+            data={scatterData}
+            margin={{ top: 20, right: 60, bottom: 60, left: 60 }}
+            xScale={{ type: 'linear', min: axisRanges.xMin, max: axisRanges.xMax }}
+            yScale={{ type: 'linear', min: axisRanges.yMin, max: axisRanges.yMax }}
+            axisBottom={{
+              tickSize: 2,
+              tickPadding: 5,
+              legend: `${xVariable || 'X Axis'} ${unitX}`,
+              legendPosition: 'middle',
+              legendOffset: 40,
+            }}
+            axisLeft={{
+              tickSize: 2,
+              tickPadding: 5,
+              legend: `${yVariable || 'Y Axis'} ${unitY}`,
+              legendPosition: 'middle',
+              legendOffset: -50,
+            }}
+            theme={{
+              axis: {
+                ticks: {
+                  text: {
+                    fill: theme.palette.text.primary,
+                  },
+                },
+                legend: {
+                  text: {
+                    fill: theme.palette.text.primary,
+                  },
                 },
               },
-              legend: {
-                text: {
-                  fill: theme.palette.text.primary,
-                },
-              },
-            },
-          }}
-          colors={theme.palette.primary.main}
-          enableGridX={true}
-          enableGridY={true}
-          useMesh={true}
-          nodeSize={5}
-          tooltip={({ node }) => {
-            const isCursorLow = node.y > 100
-            return (
-              <Box
-                sx={{
-                  background: node.color,
-                  borderRadius: '8px',
-                  padding: '8px',
-                  textAlign: 'left',
-                  transform: isCursorLow ? null : 'translateY(+150%)',
-                }}
-              >
-                <Typography variant='body2'>{xVariable?.toString()}: {node.data.x?.toString()} {unitX}</Typography>
-                <Typography variant='body2'>{yVariable?.toString()}: {node.data.y?.toString()} {unitY}</Typography>
-              </Box>
-            )
-          }}
-        />
+            }}
+            colors={theme.palette.primary.main}
+            enableGridX={false}
+            enableGridY={false}
+            useMesh={true}
+            nodeSize={5}
+            tooltip={({ node }) => {
+              const isCursorLow = node.y > 100
+              return (
+                <Box
+                  sx={{
+                    background: node.color,
+                    borderRadius: '8px',
+                    padding: '8px',
+                    textAlign: 'left',
+                    transform: isCursorLow ? null : 'translateY(+150%)',
+                  }}
+                >
+                  <Typography variant="body2">
+                    {xVariable?.toString()}: {node.data.x?.toString()} {unitX}
+                  </Typography>
+                  <Typography variant="body2">
+                    {yVariable?.toString()}: {node.data.y?.toString()} {unitY}
+                  </Typography>
+                </Box>
+              )
+            }}
+          />
+        </Box>
+
+        {/* Download button outside the chartRef */}
+        <Tooltip title={'Download Chart as PNG'}>
+          <IconButton
+            onClick={handleDownload}
+            sx={{
+              position: 'absolute',
+              bottom: 10,
+              right: 10,
+              zIndex: 10,
+            }}
+          >
+            <DownloadForOfflineTwoToneIcon fontSize='large' />
+          </IconButton>
+        </Tooltip>
       </Box>
     </Box>
   )

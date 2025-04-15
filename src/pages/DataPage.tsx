@@ -29,45 +29,32 @@ const DataPage: React.FC = () => {
     { field: 'columns', headerName: '# of Columns', width: 150 },
     { field: 'rows', headerName: '# of Rows', width: 150 },
     {
-      field: 'timeSeries',
-      headerName: 'Time Series',
-      width: 150,
+      field: 'analyse',
+      headerName: 'Analyse',
+      width: 250,
       renderCell: () => (
-        <Box
-          sx={{
-            display: 'flex',
-          }}
-        >
-          <Button
-            variant="contained"
-            size="small"
-            component={Link}
-            to="/analyse"
+          <Box
+            sx={{
+              display: 'flex', gap: 1
+            }}
           >
-            Analyse
-          </Button>
-        </Box>
-      ),
-    },
-    {
-      field: 'correlations',
-      headerName: 'Correlations',
-      width: 150,
-      renderCell: () => (
-        <Box
-          sx={{
-            display: 'flex',
-          }}
-        >
-          <Button
+            <Button
+              variant="contained"
+              size="small"
+              component={Link}
+              to="/analyse"
+            >
+              Time Series
+            </Button>
+            <Button
             variant="contained"
             size="small"
             component={Link}
             to="/analyse/correlations"
           >
-            Analyse
+            Correlation
           </Button>
-        </Box>
+          </Box>
       ),
     },
   ]
