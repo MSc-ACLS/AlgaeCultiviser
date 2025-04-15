@@ -1,18 +1,13 @@
 import { parse, isValid } from 'date-fns'
 
-/**
- * Parses a dataset, converting the first column (dates) to ISO strings.
- * @param rawData The raw CSV data as a 2D array.
- * @param dateFormat The expected date format in the first column.
- * @returns The parsed dataset.
- */
 export const parseDataset = (rawData: any[], dateFormat: string = 'dd.MM.yyyy HH:mm:ss.SSS') => {
   if (rawData.length < 2) {
     throw new Error('Dataset must have at least a header row and one data row.')
   }
 
   const headerRow = rawData[0]
-  const dataRows = rawData.slice(1)
+  const unitsRow = rawData[1]
+  const dataRows = rawData.slice(2)
 
   const parsedData = dataRows.map((row) => {
     const parsedRow = [...row]
@@ -38,5 +33,5 @@ export const parseDataset = (rawData: any[], dateFormat: string = 'dd.MM.yyyy HH
     return parsedRow
   })
 
-  return [headerRow, ...parsedData]
+  return [headerRow, unitsRow, ...parsedData]
 }

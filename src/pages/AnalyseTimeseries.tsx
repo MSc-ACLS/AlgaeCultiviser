@@ -64,9 +64,9 @@ const AnalyseTimeseries: React.FC = () => {
 
     const rawData = selectedDataset.data[0].slice(1).map((variable: string, index: number) => ({
       id: variable,
-      data: selectedDataset.data.slice(1).map((row) => {
+      data: selectedDataset.data.slice(2).map((row) => {
         const x = row[0]
-        const y = row[index + 1] === "NA" || isNaN(row[index + 1]) ? null : row[index + 1]
+        const y = row[index + 1] === 'NA' || isNaN(row[index + 1]) ? null : row[index + 1]
 
         // Detect if the date is already in ISO format
         const isISODate = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(x)
@@ -139,7 +139,7 @@ const AnalyseTimeseries: React.FC = () => {
             format: '%Y-%m-%dT%H:%M:%S.%LZ',
             precision: 'minute',
           }}
-          xFormat="time:%d.%m.%Y %H:%M"
+          xFormat='time:%d.%m.%Y %H:%M'
           yScale={{
             type: 'linear',
             min: 'auto',
@@ -196,6 +196,11 @@ const AnalyseTimeseries: React.FC = () => {
           tooltip={({ point }) => {
             const isCursorLow = point.y > 100
             const originalY = (point.data as any).originalY
+
+            // Get the unit for the current variable (point.serieId)
+            const variableIndex = selectedDataset?.data[0].indexOf(point.serieId) // Find the index of the variable
+            const unit = variableIndex !== undefined && variableIndex >= 0 ? selectedDataset?.data[1][variableIndex] : '' // Get the unit from the second row
+
             return (
               <Box
                 sx={{
@@ -206,11 +211,11 @@ const AnalyseTimeseries: React.FC = () => {
                   transform: isCursorLow ? null : 'translateY(+150%)',
                 }}
               >
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                  {point.serieId}
+                <Typography variant='body2' sx={{ fontWeight: 'bold' }}>
+                  {point.serieId} {unit && `[${unit}]`}
                 </Typography>
-                <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
-                <Typography variant="body2">Value: {originalY?.toString()}</Typography>
+                <Typography variant='body2'>Time: {new Date(point.data.x).toLocaleString()}</Typography>
+                <Typography variant='body2'>Value: {originalY?.toString()}</Typography>
               </Box>
             )
           }}

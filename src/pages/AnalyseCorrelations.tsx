@@ -13,6 +13,13 @@ const AnalyseCorrelations: React.FC = () => {
   const [xVariable, setXVariable] = useState<string | null>(null)
   const [yVariable, setYVariable] = useState<string | null>(null)
 
+  const unitX = xVariable && selectedDataset?.data[1][selectedDataset.data[0].indexOf(xVariable)]
+    ? `[${selectedDataset.data[1][selectedDataset.data[0].indexOf(xVariable)]}]`
+    : ''
+  const unitY = yVariable && selectedDataset?.data[1][selectedDataset.data[0].indexOf(yVariable)]
+    ? `[${selectedDataset.data[1][selectedDataset.data[0].indexOf(yVariable)]}]`
+    : ''
+
   useEffect(() => {
     if (selectedDataset) {
       const variables = selectedDataset.data[0].slice(1)
@@ -50,12 +57,13 @@ const AnalyseCorrelations: React.FC = () => {
     ]
   }, [selectedDataset, xVariable, yVariable])
 
-  // Calculate dynamic axis ranges
   const axisRanges = useMemo(() => {
     if (!scatterData.length) return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 }
 
     const allXValues = scatterData[0].data.map((point) => point.x)
     const allYValues = scatterData[0].data.map((point) => point.y)
+
+    
 
     return {
       xMin: Math.min(...allXValues),
@@ -75,7 +83,7 @@ const AnalyseCorrelations: React.FC = () => {
         flexDirection: 'column',
       }}
     >
-      <Typography variant="h5" sx={{ mb: 2 }}>
+      <Typography variant='h5' sx={{ mb: 2 }}>
         Correlation Analysis
       </Typography>
 
@@ -118,14 +126,14 @@ const AnalyseCorrelations: React.FC = () => {
           axisBottom={{
             tickSize: 5,
             tickPadding: 5,
-            legend: xVariable || 'X Axis',
+            legend: `${xVariable || 'X Axis'} ${unitX}`,
             legendPosition: 'middle',
             legendOffset: 40,
           }}
           axisLeft={{
             tickSize: 5,
             tickPadding: 5,
-            legend: yVariable || 'Y Axis',
+            legend: `${yVariable || 'Y Axis'} ${unitY}`,
             legendPosition: 'middle',
             legendOffset: -50,
           }}
@@ -143,7 +151,6 @@ const AnalyseCorrelations: React.FC = () => {
               },
             },
           }}
-          //colors={{ scheme: 'category10' }}
           colors={theme.palette.primary.main}
           enableGridX={true}
           enableGridY={true}
@@ -152,23 +159,20 @@ const AnalyseCorrelations: React.FC = () => {
           tooltip={({ node }) => {
             const isCursorLow = node.y > 100
             return (
-            <Box
-              sx={{
-                background: node.color,
-                borderRadius: '8px',
-                padding: '8px',
-                textAlign: 'left',
-                transform: isCursorLow ? null : 'translateY(+150%)'
-              }}
-            >
-              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                {node.serieId}
-              </Typography>
-              <Typography variant="body2">X: {node.data.x?.toString()}</Typography>
-              <Typography variant="body2">Y: {node.data.y?.toString()}</Typography>
-            </Box>
+              <Box
+                sx={{
+                  background: node.color,
+                  borderRadius: '8px',
+                  padding: '8px',
+                  textAlign: 'left',
+                  transform: isCursorLow ? null : 'translateY(+150%)',
+                }}
+              >
+                <Typography variant='body2'>{xVariable?.toString()}: {node.data.x?.toString()} {unitX}</Typography>
+                <Typography variant='body2'>{yVariable?.toString()}: {node.data.y?.toString()} {unitY}</Typography>
+              </Box>
             )
-        }}
+          }}
         />
       </Box>
     </Box>

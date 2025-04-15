@@ -110,7 +110,7 @@ const DataPage: React.FC = () => {
 
   const dataViewColumns: GridColDef[] = selectedDataset && selectedDataset.data[0]
     ? selectedDataset.data[0].map((col: string, index: number) => {
-        const columnData = selectedDataset.data.slice(1).map(row => row[index])
+        const columnData = selectedDataset.data.slice(2).map(row => row[index]) // Skip the second row (units)
 
         // Detect if the column contains ISO date strings
         const isDateColumn = columnData.every(
@@ -122,6 +122,9 @@ const DataPage: React.FC = () => {
         )
 
         const type = isDateColumn ? 'Date' : typeof columnData[0]
+
+        // Get the unit from the second row
+        const unit = selectedDataset.data[1]?.[index] || ''
 
         const tooltipTitle = (
           <table>
@@ -170,7 +173,7 @@ const DataPage: React.FC = () => {
 
         return {
           field: `col${index}`,
-          headerName: col,
+          headerName: `${col} [${unit}]`, // Add the unit to the header
           width: 150,
           renderHeader: (params: { colDef: GridColDef }) => (
             <Tooltip title={tooltipTitle}>
@@ -182,10 +185,9 @@ const DataPage: React.FC = () => {
     : []
 
   const dataViewRows = selectedDataset
-    ? selectedDataset.data.slice(1).map((row, index) => {
+    ? selectedDataset.data.slice(2).map((row, index) => { // Skip the second row (units)
         const rowData: { [key: string]: any } = { id: index }
         row.forEach((cell: any, cellIndex: number) => {
-          const header = selectedDataset.data[0][cellIndex]
           if (cellIndex === 0 && typeof cell === 'string' && !isNaN(Date.parse(cell))) {
             // Convert ISO string back to a readable date format
             rowData[`col${cellIndex}`] = new Date(cell).toLocaleString()
@@ -205,10 +207,8 @@ const DataPage: React.FC = () => {
           const rawData = result.data as any[]
           if (rawData.length > 1) {
             try {
-              // Use the parseDataset utility function
               const data = parseDataset(rawData, 'dd.MM.yyyy HH:mm:ss.SSS')
 
-              // Dispatch the dataset to the Redux store
               dispatch(addDataset({ data, filename: file.name }))
             } catch (error) {
               console.error('Error parsing dataset:', error)
