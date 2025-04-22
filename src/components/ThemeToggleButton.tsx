@@ -12,12 +12,14 @@ const ThemeToggleButton: React.FC = () => {
   const dispatch = useDispatch()
   const theme = useSelector(selectTheme)
 
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+
   const handleToggleTheme = () => {
     dispatch(toggleTheme())
   }
 
   return (
-    <Tooltip title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Reaction`}>
+    <Tooltip title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Reaction (${isMac ? '⌘' : 'Ctrl'} + J)`}>
         <IconButton edge='start' color='inherit' onClick={handleToggleTheme}>
             {theme === 'light' ? <DarkModeTwoToneIcon /> : <LightModeTwoToneIcon />}
         </IconButton>

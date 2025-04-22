@@ -4,7 +4,7 @@ import { addDataset, removeDataset, setSelectedDatasetId } from '../features/dat
 import { Button, Typography, Box, Tooltip, Checkbox } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import { parseDataset } from '../utils/parseDataset'
 import { parse, isValid } from 'date-fns'

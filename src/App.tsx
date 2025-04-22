@@ -11,11 +11,13 @@ import { selectTheme, LIGHT_THEME, DARK_THEME } from './theme/selectors'
 import ThemeToggleButton from './components/ThemeToggleButton'
 import AnalyseTimeseries from './pages/AnalyseTimeseries'
 import AnalyseCorrelations from './pages/AnalyseCorrelations'
+import useKeyboardShortcut from './hooks/useKeyboardShortcut'
 
 const App: React.FC = () => {
   const themeMode = useSelector(selectTheme) // 'light' or 'dark'
 
-  // Use pre-defined themes
+  useKeyboardShortcut()
+
   const theme = themeMode === 'light' ? LIGHT_THEME : DARK_THEME
 
   return (
