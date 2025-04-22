@@ -160,17 +160,17 @@ const AnalyseCorrelations: React.FC = () => {
               axis: {
                 ticks: {
                   text: {
-                    fill: theme.palette.text.primary,
+                    fill: theme.palette.text.secondary,
                   },
                 },
                 legend: {
                   text: {
-                    fill: theme.palette.text.primary,
+                    fill: theme.palette.text.secondary,
                   },
                 },
               },
             }}
-            colors={theme.palette.primary.main}
+            colors={theme.palette.secondary.main}
             enableGridX={false}
             enableGridY={false}
             useMesh={true}
@@ -209,7 +209,7 @@ const AnalyseCorrelations: React.FC = () => {
               right: 10,
               zIndex: 10,
             }}
-            color='primary'
+            color='secondary'
           >
             <DownloadForOfflineTwoToneIcon fontSize='large' />
           </IconButton>

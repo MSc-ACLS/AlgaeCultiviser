@@ -123,6 +123,7 @@ const AnalyseTimeseries: React.FC = () => {
                   checked={visibleLines[variable] !== false}
                   onChange={() => handleCheckboxChange(variable)}
                   sx={{ transform: 'scale(0.8)' }}
+                  color='secondary'
                 />
               }
               label={variable}
@@ -240,12 +241,12 @@ const AnalyseTimeseries: React.FC = () => {
               axis: {
                 ticks: {
                   text: {
-                    fill: theme.palette.text.primary,
+                    fill: theme.palette.text.secondary,
                   },
                 },
                 legend: {
                   text: {
-                    fill: theme.palette.text.primary,
+                    fill: theme.palette.text.secondary,
                   },
                 },
               },
@@ -262,7 +263,7 @@ const AnalyseTimeseries: React.FC = () => {
               right: 10,
               zIndex: 10,
             }}
-            color='primary'
+            color='secondary'
           >
             <DownloadForOfflineTwoToneIcon fontSize="large" />
           </IconButton>

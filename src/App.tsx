@@ -11,10 +11,11 @@ import { selectTheme, LIGHT_THEME, DARK_THEME } from './theme/selectors'
 import ThemeToggleButton from './components/ThemeToggleButton'
 import AnalyseTimeseries from './pages/AnalyseTimeseries'
 import AnalyseCorrelations from './pages/AnalyseCorrelations'
-import useKeyboardShortcut from './hooks/useKeyboardShortcut'
+import useKeyboardShortcut from './utils/useKeyboardShortcut'
+import favi from '../public/favi.svg'
 
 const App: React.FC = () => {
-  const themeMode = useSelector(selectTheme) // 'light' or 'dark'
+  const themeMode = useSelector(selectTheme)
 
   useKeyboardShortcut()
 
@@ -29,21 +30,37 @@ const App: React.FC = () => {
           <Toolbar>
             <ThemeToggleButton />
 
-            <Typography
-              variant='h6'
+            <Box
               sx={{
+                display: 'flex',
+                alignItems: 'center',
                 position: 'absolute',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                fontWeight: 'bold',
               }}
             >
-              AlgaeCultiviser
-            </Typography>
+              <img
+                src={favi}
+                alt='Logo'
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  marginRight: '8px',
+                }}
+              />
+              <Typography
+                variant='h6'
+                sx={{
+                  fontWeight: 'bold',
+                }}
+              >
+                AlgaeCultiviser
+              </Typography>
+            </Box>
 
             <Box sx={{ flexGrow: 1 }} />
             <Tooltip title='Download Data'>
-              <IconButton color='inherit' disabled >
+              <IconButton color='inherit' disabled>
                 <CloudDownloadTwoToneIcon />
               </IconButton>
             </Tooltip>
@@ -53,13 +70,13 @@ const App: React.FC = () => {
         </AppBar>
         <Box
           sx={{
-            mt: 3, // Margin at the top
+            mt: 3,
             width: '100%',
-            height: 'calc(100vh - 115px)', // Dynamically adjust height (AppBar + NavigationTabs = ~115px)
+            height: 'calc(100vh - 115px)',
             margin: '0 auto',
-            padding: 2, // Keep padding for consistent spacing
-            boxSizing: 'border-box', // Ensure padding is included in the height calculation
-            overflow: 'auto', // Allow scrolling if content overflows
+            padding: 2,
+            boxSizing: 'border-box',
+            overflow: 'auto',
           }}
         >
           <Routes>

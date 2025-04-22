@@ -47,21 +47,23 @@ const DataPage: React.FC = () => {
       renderCell: (params) => (
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
-            variant="contained"
-            size="small"
+            variant='contained'
+            size='small'
+            color='secondary'
             onClick={() => {
               dispatch(setSelectedDatasetId(params.row.id)) // Set the selected dataset
-              navigate('/analyse') // Navigate to the "Analyse" page
+              navigate('/analyse') // Navigate to the 'Analyse' page
             }}
           >
             Time Series
           </Button>
           <Button
-            variant="contained"
-            size="small"
+            variant='contained'
+            size='small'
+            color='secondary'
             onClick={() => {
               dispatch(setSelectedDatasetId(params.row.id)) // Set the selected dataset
-              navigate('/analyse/correlations') // Navigate to the "Correlation" page
+              navigate('/analyse/correlations') // Navigate to the 'Correlation' page
             }}
           >
             Correlation
@@ -78,6 +80,7 @@ const DataPage: React.FC = () => {
           sx={{ display: 'flex', alignItems: 'center', height: '100%'}}
         >
           <Checkbox
+            color='secondary'
             checked={compareSelection.includes(params.row.id)}
             onChange={() => handleCompareChange(params.row.id)}
           />
@@ -243,7 +246,7 @@ const DataPage: React.FC = () => {
         <Typography variant='h5'>Datasets</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
-            variant="contained"
+            variant='contained'
             onClick={handleCompare}
             disabled={compareSelection.length <= 1}
           >
@@ -264,13 +267,14 @@ const DataPage: React.FC = () => {
           <Button
             variant='contained'
             onClick={handleRemoveDataset}
+            disabled={selectionModel.length === 0}
           >
             Remove Selected Dataset
           </Button>
         </Box>
       </Box>
       <Box sx={{ display: 'flex', flex: 1, overflow: 'auto', mb: 4 }}>
-        <Box sx={{ flex: 1, overflow: 'auto', mr: 2 }}>
+        <Box sx={{ flex: 1, overflow: 'auto' }}>
           <DataGrid
             rows={rows}
             columns={columns}

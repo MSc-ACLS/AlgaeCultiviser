@@ -1,8 +1,6 @@
 import html2canvas from 'html2canvas'
 import { Dispatch } from 'redux'
 import { setTheme } from '../theme/themeSlice'
-import { useSelector } from 'react-redux'
-import { RootState } from '../store'
 
 export const handleDownloadChart = async (
   chartRef: React.RefObject<HTMLDivElement | null>, 
