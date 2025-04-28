@@ -5,7 +5,6 @@ import { RootState } from '../store'
 import { ResponsiveScatterPlotCanvas } from '@nivo/scatterplot'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useTheme } from '@mui/material/styles'
-import html2canvas from 'html2canvas'
 import { handleDownloadChart } from '../utils/downloadChart'
 
 const AnalyseCorrelations: React.FC = () => {
@@ -24,6 +23,15 @@ const AnalyseCorrelations: React.FC = () => {
     : ''
 
   const chartRef = useRef<HTMLDivElement>(null)
+  const [chartDimensions, setChartDimensions] = useState<{ width: number; height: number } | null>(null)
+
+  useEffect(() => {
+    if (chartRef.current) {
+      const { width, height } = chartRef.current.getBoundingClientRect()
+      setChartDimensions({ width, height })
+    }
+  }, [])
+
   const dispatch = useDispatch()
   const currentTheme = useSelector((state: RootState) => state.theme)
 
@@ -53,13 +61,47 @@ const AnalyseCorrelations: React.FC = () => {
 
     if (xIndex === -1 || yIndex === -1) return []
 
+    const points = selectedDataset.data.slice(2).map((row) => ({
+      x: parseFloat(row[xIndex]),
+      y: parseFloat(row[yIndex]),
+    })).filter((point) => !isNaN(point.x) && !isNaN(point.y)) // Filter out invalid points
+
+    // Calculate regression line
+    const n = points.length
+    const sumX = points.reduce((acc, point) => acc + point.x, 0)
+    const sumY = points.reduce((acc, point) => acc + point.y, 0)
+    const sumXY = points.reduce((acc, point) => acc + point.x * point.y, 0)
+    const sumX2 = points.reduce((acc, point) => acc + point.x * point.x, 0)
+    const sumY2 = points.reduce((acc, point) => acc + point.y * point.y, 0)
+
+    const denominator = n * sumX2 - sumX * sumX
+    const slope = denominator !== 0 ? (n * sumXY - sumX * sumY) / denominator : 0
+    const intercept = n !== 0 ? (sumY - slope * sumX) / n : 0
+
+    // Calculate R-value
+    const rNumerator = n * sumXY - sumX * sumY
+    const rDenominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY))
+    const rValue = rDenominator !== 0 ? rNumerator / rDenominator : 0
+
+    // Generate regression line points
+    const xValues = points.map((point) => point.x)
+    const xMin = Math.min(...xValues)
+    const xMax = Math.max(...xValues)
+
+    const regressionLine = [
+      { x: xMin, y: slope * xMin + intercept },
+      { x: xMax, y: slope * xMax + intercept },
+    ]
+
     return [
       {
         id: `${xVariable} vs ${yVariable}`,
-        data: selectedDataset.data.slice(1).map((row) => ({
-          x: row[xIndex],
-          y: row[yIndex],
-        })).filter((point) => !isNaN(point.x) && !isNaN(point.y)), // Filter out invalid points
+        data: points,
+      },
+      {
+        id: 'Regression Line',
+        data: regressionLine,
+        rValue, // Store the R-value in the regression line dataset
       },
     ]
   }, [selectedDataset, xVariable, yVariable])
@@ -70,7 +112,7 @@ const AnalyseCorrelations: React.FC = () => {
     const allXValues = scatterData[0].data.map((point) => point.x)
     const allYValues = scatterData[0].data.map((point) => point.y)
 
-    
+
 
     return {
       xMin: Math.min(...allXValues),
@@ -83,8 +125,43 @@ const AnalyseCorrelations: React.FC = () => {
   const theme = useTheme()
 
   const handleDownload = async () => {
-    await handleDownloadChart(chartRef, 'correlations-chart.png', currentTheme,  dispatch)
+    await handleDownloadChart(chartRef, 'correlations-chart.png', currentTheme, dispatch)
   }
+
+  // Custom layer to render the regression line
+  const RegressionLineLayer = (ctx: CanvasRenderingContext2D, props: any) => {
+    if (!chartDimensions) return
+
+    const { width, height } = chartDimensions
+    const regressionLine = scatterData.find((d) => d.id === 'Regression Line')?.data
+    if (!regressionLine || regressionLine.length < 2) {
+      return
+    }
+
+    const [start, end] = regressionLine
+
+    if (!start || !end || isNaN(start.x) || isNaN(start.y) || isNaN(end.x) || isNaN(end.y)) {
+      return
+    }
+
+    const { xScale, yScale } = props
+
+    const x1 = xScale(start.x)
+    const y1 = yScale(start.y)
+    const x2 = xScale(end.x)
+    const y2 = yScale(end.y)
+
+    ctx.save()
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.strokeStyle = theme.palette.error.main
+    ctx.lineWidth = 2
+    ctx.setLineDash([4, 4])
+    ctx.stroke()
+    ctx.restore()
+  }
+
 
   return (
     <Box
@@ -129,9 +206,9 @@ const AnalyseCorrelations: React.FC = () => {
           overflow: 'hidden',
           position: 'relative',
         }}
+        ref={chartRef} // Attach the ref to measure dimensions
       >
         <Box
-          ref={chartRef}
           sx={{
             height: '100%',
             width: '100%',
@@ -170,12 +247,40 @@ const AnalyseCorrelations: React.FC = () => {
                 },
               },
             }}
-            colors={theme.palette.secondary.main}
+            colors={(d) => (d.serieId === 'Regression Line' ? theme.palette.error.main : theme.palette.secondary.main)}
             enableGridX={false}
             enableGridY={false}
             useMesh={true}
-            nodeSize={5}
+            nodeSize={(d) => (d.serieId === 'Regression Line' ? 0 : 5)}
+            layers={[
+              RegressionLineLayer,
+              'grid',
+              'axes',
+              'nodes',
+              'mesh',
+              'legends',
+            ]}
             tooltip={({ node }) => {
+              if (node.serieId === 'Regression Line') {
+                const regressionLine = scatterData.find((d) => d.id === 'Regression Line')
+                const rValue = regressionLine?.rValue ?? 0
+
+                return (
+                  <Box
+                    sx={{
+                      background: theme.palette.error.main,
+                      borderRadius: '8px',
+                      padding: '8px',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <Typography variant="body2">
+                      R-Value: {rValue.toFixed(3)}
+                    </Typography>
+                  </Box>
+                )
+              }
+
               const isCursorLow = node.y > 100
               return (
                 <Box

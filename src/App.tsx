@@ -12,7 +12,7 @@ import ThemeToggleButton from './components/ThemeToggleButton'
 import AnalyseTimeseries from './pages/AnalyseTimeseries'
 import AnalyseCorrelations from './pages/AnalyseCorrelations'
 import useKeyboardShortcut from './utils/useKeyboardShortcut'
-import favi from '../public/favi.svg'
+import favi from './favi.svg'
 
 const App: React.FC = () => {
   const themeMode = useSelector(selectTheme)
@@ -43,8 +43,8 @@ const App: React.FC = () => {
                 src={favi}
                 alt='Logo'
                 style={{
-                  width: '60px',
-                  height: '60px',
+                  width: '65px',
+                  height: '65px',
                   marginRight: '8px',
                 }}
               />
