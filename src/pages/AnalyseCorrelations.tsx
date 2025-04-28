@@ -93,15 +93,27 @@ const AnalyseCorrelations: React.FC = () => {
       { x: xMax, y: slope * xMax + intercept },
     ]
 
+    // Generate additional points along the regression line
+    const numPoints = 50
+    const regressionLinePoints = Array.from({ length: numPoints }, (_, i) => {
+      const x = xMin + (i / (numPoints - 1)) * (xMax - xMin)
+      const y = slope * x + intercept
+      return { x, y }
+    })
+
     return [
       {
         id: `${xVariable} vs ${yVariable}`,
         data: points,
       },
       {
-        id: 'Regression Line',
+        id: 'Regression Line', // Keep the original regression line
         data: regressionLine,
         rValue, // Store the R-value in the regression line dataset
+      },
+      {
+        id: 'Regression Line Points', // Add the additional points
+        data: regressionLinePoints,
       },
     ]
   }, [selectedDataset, xVariable, yVariable])
@@ -251,7 +263,7 @@ const AnalyseCorrelations: React.FC = () => {
             enableGridX={false}
             enableGridY={false}
             useMesh={true}
-            nodeSize={(d) => (d.serieId === 'Regression Line' ? 0 : 5)}
+            nodeSize={(d) => (d.serieId === 'Regression Line Points' || d.serieId === 'Regression Line' ? 0 : 5)}
             layers={[
               RegressionLineLayer,
               'grid',
@@ -261,7 +273,10 @@ const AnalyseCorrelations: React.FC = () => {
               'legends',
             ]}
             tooltip={({ node }) => {
-              if (node.serieId === 'Regression Line') {
+
+              const isCursorLow = node.y > 100
+
+              if (node.serieId === 'Regression Line Points' || node.serieId === 'Regression Line') {
                 const regressionLine = scatterData.find((d) => d.id === 'Regression Line')
                 const rValue = regressionLine?.rValue ?? 0
 
@@ -272,6 +287,7 @@ const AnalyseCorrelations: React.FC = () => {
                       borderRadius: '8px',
                       padding: '8px',
                       textAlign: 'left',
+                      transform: isCursorLow ? null : 'translateY(+150%)',
                     }}
                   >
                     <Typography variant="body2">
@@ -281,7 +297,6 @@ const AnalyseCorrelations: React.FC = () => {
                 )
               }
 
-              const isCursorLow = node.y > 100
               return (
                 <Box
                   sx={{
