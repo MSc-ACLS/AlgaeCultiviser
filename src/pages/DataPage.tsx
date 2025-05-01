@@ -51,8 +51,8 @@ const DataPage: React.FC = () => {
             size='small'
             color='secondary'
             onClick={() => {
-              dispatch(setSelectedDatasetId(params.row.id)) // Set the selected dataset
-              navigate('/analyse') // Navigate to the 'Analyse' page
+              dispatch(setSelectedDatasetId(params.row.id))
+              navigate('/analyse')
             }}
           >
             Time Series
@@ -62,8 +62,8 @@ const DataPage: React.FC = () => {
             size='small'
             color='secondary'
             onClick={() => {
-              dispatch(setSelectedDatasetId(params.row.id)) // Set the selected dataset
-              navigate('/analyse/correlations') // Navigate to the 'Correlation' page
+              dispatch(setSelectedDatasetId(params.row.id))
+              navigate('/analyse/correlations')
             }}
           >
             Correlation
