@@ -42,17 +42,28 @@ const AnalyseTimeseries: React.FC = () => {
     await handleDownloadChart(chartRef, 'timeseries-chart.png', currentTheme, dispatch)
   }
 
-  const normalizeData = (data: any[]) => {
-    const normalizedData = data.map((variableData: { id: string; data: { x: Date; y: number }[] }) => {
+  const normaliseData = (data: any[]) => {
+    const normalisedData = data.map((variableData: { id: string; data: { x: Date; y: number }[] }) => {
       const yValues = variableData.data.map((point) => point.y).filter((y) => y !== null)
       const min = Math.min(...yValues)
       const max = Math.max(...yValues)
+
+      if (yValues.length < 2 || min === max) {
+        return {
+          id: variableData.id,
+          data: variableData.data.map((point) => ({
+            x: point.x,
+            originalY: point.y,
+            y: 0.5,
+          })),
+        }
+      }
 
       return {
         id: variableData.id,
         data: variableData.data.map((point) => {
           if (!point.x || isNaN(point.x.getTime()) || point.y === null) {
-            console.warn(`Invalid normalized point skipped: x=${point.x}, y=${point.y}`)
+            console.warn(`Invalid normalised point skipped: x=${point.x}, y=${point.y}`)
             return null
           }
 
@@ -65,7 +76,7 @@ const AnalyseTimeseries: React.FC = () => {
       }
     })
 
-    return normalizedData
+    return normalisedData
   }
 
   const data = useMemo(() => {
@@ -75,31 +86,37 @@ const AnalyseTimeseries: React.FC = () => {
       id: variable,
       data: selectedDataset.data.slice(2).map((row) => {
         const x = row[0]
-        const y = row[index + 1] === 'NA' || isNaN(row[index + 1]) ? null : row[index + 1]
+        const y = row[index + 1]
 
+        // Check if the value is numerical
+        const isNumerical = !isNaN(parseFloat(y)) && isFinite(y)
+
+        // Check if the date is in ISO format
         const isISODate = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(x)
 
         let parsedDate
         if (isISODate) {
           parsedDate = new Date(x)
         } else {
-          const normalizedDate = x.trim().replace(/(\.\d{1,2})$/, (match: string) => match.padEnd(4, '0'))
-
-          parsedDate = parse(normalizedDate, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
+          // Normalise the date string
+          const normalisedDate = x.trim().replace(/(\.\d{1,2})$/, (match: string) => match.padEnd(4, '0'))
+          parsedDate = parse(normalisedDate, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
         }
 
-        if (!isValid(parsedDate) || y === null) {
-          console.warn(`Invalid data point skipped: raw=${x}, parsed=${parsedDate}`)
+        if (!isValid(parsedDate) || !isNumerical) {
+          console.warn(`Invalid data point skipped: raw=${x}, parsed=${parsedDate}, y=${y}`)
           return null
         }
 
-        return { x: parsedDate, y }
+        return { x: parsedDate, y: parseFloat(y) }
       }).filter((point) => point !== null),
     }))
 
-    console.log('Parsed raw data:', rawData)
-    return normalizeData(rawData)
+    // Filter out datasets with no valid data points
+    return normaliseData(rawData.filter((variableData: { data: string | any[] }) => variableData.data.length > 0))
   }, [selectedDataset])
+
+  console.log('Normalised data:', data)
 
   const theme = useTheme()
 
@@ -184,6 +201,7 @@ const AnalyseTimeseries: React.FC = () => {
             enableGridX={false}
             enableGridY={false}
             pointSize={0}
+            lineWidth={1}
             legends={[
               {
                 anchor: 'right',
