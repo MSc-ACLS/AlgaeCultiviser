@@ -2,10 +2,15 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
 import Papa from 'papaparse'
 import { parseDataset } from '../utils/parseDataset'
 
-interface Dataset {
+export interface Dataset {
   id: number
-  data: any[] // The dataset content
-  filename: string // The filename of the dataset
+  filename: string
+  data: any[]
+  metadata?: {
+    id: number
+    filename: string
+    data: any[]
+  }
 }
 
 interface DataState {
@@ -19,7 +24,7 @@ const initialState: DataState = {
 }
 
 export const loadInitialData = createAsyncThunk('data/loadInitialData', async () => {
-  const response = await fetch('/data/datazhaw100.csv')
+  const response = await fetch('/data/datazhawfull.csv')
   const fileContent = await response.text()
   let parsedData: any[] = []
   Papa.parse(fileContent, {
@@ -29,13 +34,12 @@ export const loadInitialData = createAsyncThunk('data/loadInitialData', async ()
     header: false,
   })
 
-  // Apply parseDataset to ensure the data is in the correct format
   const parsedDataset = parseDataset(parsedData, 'dd.MM.yyyy HH:mm:ss.SSS')
 
   return [{
     id: 0,
     data: parsedDataset,
-    filename: 'datazhaw100.csv' // Store the filename
+    filename: 'datazhawfull.csv'
   }]
 })
 
@@ -43,19 +47,18 @@ const dataSlice = createSlice({
   name: "data",
   initialState,
   reducers: {
-    addDataset: (state, action: PayloadAction<{ data: any[]; filename: string }>) => {
-      try {
-        // Parse the dataset before adding it to the state
-        const parsedData = parseDataset(action.payload.data, 'dd.MM.yyyy HH:mm:ss.SSS')
+    addDataset: (state, action: PayloadAction<Dataset>) => {
+      const existingDatasetIndex = state.datasets.findIndex(
+        (dataset) => dataset.filename === action.payload.filename
+      )
 
-        const newDataset: Dataset = {
-          id: state.datasets.length > 0 ? state.datasets[state.datasets.length - 1].id + 1 : 1,
-          data: parsedData,
-          filename: action.payload.filename,
+      if (existingDatasetIndex !== -1) {
+        state.datasets[existingDatasetIndex] = {
+          ...state.datasets[existingDatasetIndex],
+          ...action.payload,
         }
-        state.datasets.push(newDataset)
-      } catch (error) {
-        console.error('Error parsing dataset in reducer:', error)
+      } else {
+        state.datasets.push(action.payload)
       }
     },
     removeDataset: (state, action: PayloadAction<number>) => {

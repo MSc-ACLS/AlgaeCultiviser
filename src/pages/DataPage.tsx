@@ -1,9 +1,9 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState, AppDispatch } from '../store'
 import { addDataset, removeDataset, setSelectedDatasetId } from '../features/dataSlice'
-import { Button, Typography, Box, Tooltip, Checkbox } from '@mui/material'
+import { Button, Typography, Box, Tooltip, Checkbox, Alert, Snackbar } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import { parseDataset } from '../utils/parseDataset'
@@ -11,10 +11,14 @@ import { parse, isValid } from 'date-fns'
 
 const DataPage: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
-  const selectedDatasetId = useSelector((state: RootState) => state.data.selectedDatasetId)
+  const selectedDatasetId = useSelector<RootState, string | number | null>(
+    (state) => state.data.selectedDatasetId
+  )
   const dispatch = useDispatch<AppDispatch>()
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
   const [compareSelection, setCompareSelection] = useState<number[]>([])
+  const [alertMessage, setAlertMessage] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState<{ message: string | null, open: boolean }>({ message: null, open: false })
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -36,7 +40,6 @@ const DataPage: React.FC = () => {
   }
 
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', width: 90 },
     { field: 'filename', headerName: 'Filename', width: 200 },
     { field: 'columns', headerName: '# of Columns', width: 150 },
     { field: 'rows', headerName: '# of Rows', width: 150 },
@@ -44,58 +47,72 @@ const DataPage: React.FC = () => {
       field: 'analyse',
       headerName: 'Analyse',
       width: 250,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant='contained'
-            size='small'
-            color='secondary'
-            onClick={() => {
-              dispatch(setSelectedDatasetId(params.row.id))
-              navigate('/analyse')
-            }}
-          >
-            Time Series
-          </Button>
-          <Button
-            variant='contained'
-            size='small'
-            color='secondary'
-            onClick={() => {
-              dispatch(setSelectedDatasetId(params.row.id))
-              navigate('/analyse/correlations')
-            }}
-          >
-            Correlation
-          </Button>
-        </Box>
-      ),
+      renderCell: (params) =>
+        !params.row.isMetadata && (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant='contained'
+              size='small'
+              color='secondary'
+              onClick={() => {
+                dispatch(setSelectedDatasetId(params.row.id))
+                navigate('/analyse')
+              }}
+            >
+              Time Series
+            </Button>
+            <Button
+              variant='contained'
+              size='small'
+              color='secondary'
+              onClick={() => {
+                dispatch(setSelectedDatasetId(params.row.id))
+                navigate('/analyse/correlations')
+              }}
+            >
+              Correlation
+            </Button>
+          </Box>
+        ),
     },
     {
       field: 'compare',
       headerName: 'Compare',
       width: 150,
-      renderCell: (params) => (
-        <Box
-          sx={{ display: 'flex', alignItems: 'center', height: '100%'}}
-        >
-          <Checkbox
-            color='secondary'
-            checked={compareSelection.includes(params.row.id)}
-            onChange={() => handleCompareChange(params.row.id)}
-          />
-        </Box>
-      ),
+      renderCell: (params) =>
+        !params.row.isMetadata && (
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Checkbox
+              color='secondary'
+              checked={compareSelection.includes(params.row.id)}
+              onChange={() => handleCompareChange(params.row.id)}
+            />
+          </Box>
+        ),
     },
   ]
 
-  const rows = datasets.map((dataset) => ({
-    id: dataset.id,
-    filename: dataset.filename,
-    columns: dataset.data[0]?.length || 0,
-    rows: dataset.data.length,
-    timeSeries: 'link'
-  }))
+  const rows = datasets.flatMap((dataset) => {
+    const mainRow = {
+      id: dataset.id,
+      filename: dataset.filename,
+      columns: dataset.data[0]?.length || 0,
+      rows: dataset.data.length,
+      timeSeries: 'link',
+    }
+  
+    const metadataRow = dataset.metadata
+      ? {
+          id: `${dataset.id}_meta`,
+          filename: dataset.metadata.filename,
+          columns: dataset.metadata.data[0]?.length || 0,
+          rows: dataset.metadata.data.length,
+          isMetadata: true,
+        }
+      : null
+  
+    return metadataRow ? [mainRow, metadataRow] : [mainRow]
+  })
 
   const handleRemoveDataset = () => {
     if (selectionModel.length > 0) {
@@ -123,7 +140,18 @@ const DataPage: React.FC = () => {
     return num.toPrecision(3)
   }
 
-  const selectedDataset = selectedDatasetId !== null ? datasets.find(dataset => dataset.id === selectedDatasetId) : null
+  const selectedDataset = useMemo(() => {
+    if (selectedDatasetId === null) return null
+
+    if (typeof selectedDatasetId === 'string' && selectedDatasetId.includes('_meta')) {
+      const mainDatasetId = parseInt(selectedDatasetId.split('_')[0], 10)
+      const mainDataset = datasets.find((dataset) => dataset.id === mainDatasetId)
+
+      return mainDataset?.metadata || null
+    }
+
+    return datasets.find((dataset) => dataset.id === selectedDatasetId) || null
+  }, [selectedDatasetId, datasets])
 
   const dataViewColumns: GridColDef[] = selectedDataset && selectedDataset.data[0]
     ? selectedDataset.data[0].map((col: string, index: number) => {
@@ -223,7 +251,28 @@ const DataPage: React.FC = () => {
             try {
               const data = parseDataset(rawData, 'dd.MM.yyyy HH:mm:ss.SSS')
 
-              dispatch(addDataset({ data, filename: file.name }))
+              const isMetaFile = file.name.includes('_meta.csv')
+              if (isMetaFile) {
+                const mainFileName = file.name.replace('_meta.csv', '.csv')
+                const mainDataset = datasets.find((dataset) => dataset.filename === mainFileName)
+
+                if (mainDataset) {
+                  const nextId = Math.max(...datasets.map((d) => d.id), 0) + 1
+
+                  dispatch(
+                    addDataset({
+                      ...mainDataset,
+                      metadata: { id: nextId, data, filename: file.name },
+                    })
+                  )
+                } else {
+                  setSnackbar({ message: `No main file found for metadata file: ${file.name}`, open: true })
+                }
+              } else {
+                const nextId = Math.max(...datasets.map((d) => d.id), 0) + 1
+
+                dispatch(addDataset({ id: nextId, data, filename: file.name }))
+              }
             } catch (error) {
               console.error('Error parsing dataset:', error)
             }
@@ -242,6 +291,31 @@ const DataPage: React.FC = () => {
         flexDirection: 'column',
       }}
     >
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={5000}
+        onClose={() => setSnackbar({ message: null, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ message: null, open: false })}
+          severity="warning"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
+      {alertMessage && (
+        <Alert
+          severity="warning"
+          onClose={() => setAlertMessage(null)}
+          sx={{ mb: 2 }}
+        >
+          {alertMessage}
+        </Alert>
+      )}
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant='h5'>Datasets</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
