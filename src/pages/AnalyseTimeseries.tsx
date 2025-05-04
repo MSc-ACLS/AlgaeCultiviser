@@ -1,7 +1,7 @@
 import { Box, Typography, FormControlLabel, Checkbox, Button, IconButton, Tooltip } from '@mui/material'
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '../store'
-import { ResponsiveLineCanvas } from '@nivo/line'
+import { ResponsiveLineCanvas, Point, CustomCanvasLayerProps } from '@nivo/line'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { parse, isValid } from 'date-fns'
 import { useTheme } from '@mui/material/styles'
@@ -73,6 +73,8 @@ const AnalyseTimeseries: React.FC = () => {
             y: (point.y - min) / (max - min),
           }
         }).filter((point) => point !== null),
+        pointSize: variableData.id.startsWith('Metadata:') ? 8 : 0,
+        lineWidth: variableData.id.startsWith('Metadata:') ? 0 : 1,
       }
     })
 
@@ -98,9 +100,9 @@ const AnalyseTimeseries: React.FC = () => {
         if (isISODate) {
           parsedDate = new Date(x)
         } else {
-          // Normalise the date string
-          const normalisedDate = x.trim().replace(/(\.\d{1,2})$/, (match: string) => match.padEnd(4, '0'))
-          parsedDate = parse(normalisedDate, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
+          // Normalize the date string
+          const normalizedDate = x.trim().replace(/(\.\d{1,2})$/, (match: string) => match.padEnd(4, '0'))
+          parsedDate = parse(normalizedDate, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
         }
 
         if (!isValid(parsedDate) || !isNumerical) {
@@ -110,7 +112,33 @@ const AnalyseTimeseries: React.FC = () => {
 
         return { x: parsedDate, y: parseFloat(y) }
       }).filter((point) => point !== null),
+      curve: 'monotoneX', // Default curve for main datasets
     }))
+
+    // Add metadata if it exists
+    if (selectedDataset.metadata) {
+      const metadataRawData = selectedDataset.metadata.data[0].slice(1).map((variable: string, index: number) => ({
+        id: `Metadata: ${variable}`,
+        data: selectedDataset.metadata?.data.slice(2).map((row) => {
+          const x = row[0]
+          const y = row[index + 1]
+
+          // Check if the value is numerical
+          const isNumerical = !isNaN(parseFloat(y)) && isFinite(y)
+
+          let parsedDate = parse(x, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
+          if (!isValid(parsedDate) || !isNumerical) {
+            console.warn(`Invalid metadata point skipped: raw=${x}, parsed=${parsedDate}, y=${y}`)
+            return null
+          }
+
+          return { x: parsedDate, y: parseFloat(y) }
+        }).filter((point) => point !== null),
+        curve: 'linear', // Use linear curve for metadata
+      }))
+
+      rawData.push(...metadataRawData)
+    }
 
     // Filter out datasets with no valid data points
     return normaliseData(rawData.filter((variableData: { data: string | any[] }) => variableData.data.length > 0))
@@ -119,6 +147,33 @@ const AnalyseTimeseries: React.FC = () => {
   console.log('Normalised data:', data)
 
   const theme = useTheme()
+
+  const MetadataPointsLayer = ({ points, ctx }: CustomCanvasLayerProps) => {
+    points
+      .filter((point) => typeof point.serieId === 'string' && point.serieId.startsWith('Metadata:')) // Only render points for metadata series
+      .forEach((point) => {
+        ctx.beginPath()
+        ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI) // Draw a circle with radius 8
+        ctx.fillStyle = point.color // Fill color based on the series color
+        ctx.fill()
+        ctx.strokeStyle = 'white' // White border
+        ctx.lineWidth = 0
+        ctx.stroke()
+        ctx.closePath()
+      })
+  }
+
+  const LinesLayer = ({ series, ctx, lineGenerator, xScale, yScale }: CustomCanvasLayerProps) => {
+    series
+      .filter((serie) => typeof serie.id === 'string' && !serie.id.startsWith('Metadata:')) // Exclude metadata lines
+      .forEach((serie) => {
+        ctx.beginPath()
+        ctx.strokeStyle = serie.color || 'black' // Fallback to 'black' if color is undefined
+        ctx.lineWidth = 1
+        lineGenerator.context(ctx)(serie.data.map((d) => ({ x: xScale(d.data.x), y: yScale(d.data.y) })))
+        ctx.stroke()
+      })
+  }
 
   return (
     <Box
@@ -165,7 +220,7 @@ const AnalyseTimeseries: React.FC = () => {
           }}
         >
           <ResponsiveLineCanvas
-            data={data.filter((d: { id: string }) => visibleLines[d.id] !== false)}
+            data={data.filter((d: { id: string }) => visibleLines[d.id] !== false)} // Pass all data
             margin={{ top: 20, right: 200, bottom: 40, left: 50 }}
             xScale={{
               type: 'time',
@@ -197,11 +252,21 @@ const AnalyseTimeseries: React.FC = () => {
               legendPosition: 'middle',
             }}
             colors={{ scheme: 'category10' }}
-            curve="monotoneX"
             enableGridX={false}
             enableGridY={false}
-            pointSize={0}
-            lineWidth={1}
+            pointSize={0} // Disable default points
+            lineWidth={1} // Default line width for main datasets
+            layers={[
+              'grid',
+              'markers',
+              'axes',
+              'areas',
+              LinesLayer, // Custom layer for main dataset lines
+              'slices',
+              'mesh',
+              'legends',
+              MetadataPointsLayer, // Custom layer for metadata points
+            ]}
             legends={[
               {
                 anchor: 'right',
@@ -227,16 +292,8 @@ const AnalyseTimeseries: React.FC = () => {
                 ],
               },
             ]}
-            tooltip={({ point }) => {
-              const isCursorLow = point.y > 100
+            tooltip={({ point }: { point: any }) => {
               const originalY = (point.data as any).originalY
-
-              const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
-              const unit =
-                variableIndex !== undefined && variableIndex >= 0
-                  ? selectedDataset?.data[1][variableIndex]
-                  : ''
-
               return (
                 <Box
                   sx={{
@@ -244,11 +301,10 @@ const AnalyseTimeseries: React.FC = () => {
                     borderRadius: '8px',
                     padding: '8px',
                     textAlign: 'left',
-                    transform: isCursorLow ? null : 'translateY(+150%)',
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                    {point.serieId} {unit && `[${unit}]`}
+                    {point.serieId}
                   </Typography>
                   <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
                   <Typography variant="body2">Value: {originalY?.toString()}</Typography>
