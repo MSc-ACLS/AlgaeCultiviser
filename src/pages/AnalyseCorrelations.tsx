@@ -64,9 +64,8 @@ const AnalyseCorrelations: React.FC = () => {
     const points = selectedDataset.data.slice(2).map((row) => ({
       x: parseFloat(row[xIndex]),
       y: parseFloat(row[yIndex]),
-    })).filter((point) => !isNaN(point.x) && !isNaN(point.y)) // Filter out invalid points
+    })).filter((point) => !isNaN(point.x) && !isNaN(point.y))
 
-    // Calculate regression line
     const n = points.length
     const sumX = points.reduce((acc, point) => acc + point.x, 0)
     const sumY = points.reduce((acc, point) => acc + point.y, 0)
@@ -78,12 +77,10 @@ const AnalyseCorrelations: React.FC = () => {
     const slope = denominator !== 0 ? (n * sumXY - sumX * sumY) / denominator : 0
     const intercept = n !== 0 ? (sumY - slope * sumX) / n : 0
 
-    // Calculate R-value
     const rNumerator = n * sumXY - sumX * sumY
     const rDenominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY))
     const rValue = rDenominator !== 0 ? rNumerator / rDenominator : 0
 
-    // Generate regression line points
     const xValues = points.map((point) => point.x)
     const xMin = Math.min(...xValues)
     const xMax = Math.max(...xValues)
@@ -93,7 +90,6 @@ const AnalyseCorrelations: React.FC = () => {
       { x: xMax, y: slope * xMax + intercept },
     ]
 
-    // Generate additional points along the regression line
     const numPoints = 50
     const regressionLinePoints = Array.from({ length: numPoints }, (_, i) => {
       const x = xMin + (i / (numPoints - 1)) * (xMax - xMin)
@@ -107,12 +103,12 @@ const AnalyseCorrelations: React.FC = () => {
         data: points,
       },
       {
-        id: 'Regression Line', // Keep the original regression line
+        id: 'Regression Line',
         data: regressionLine,
-        rValue, // Store the R-value in the regression line dataset
+        rValue, 
       },
       {
-        id: 'Regression Line Points', // Add the additional points
+        id: 'Regression Line Points', 
         data: regressionLinePoints,
       },
     ]
@@ -140,7 +136,6 @@ const AnalyseCorrelations: React.FC = () => {
     await handleDownloadChart(chartRef, 'correlations-chart.png', currentTheme, dispatch)
   }
 
-  // Custom layer to render the regression line
   const RegressionLineLayer = (ctx: CanvasRenderingContext2D, props: any) => {
     if (!chartDimensions) return
 
@@ -218,7 +213,7 @@ const AnalyseCorrelations: React.FC = () => {
           overflow: 'hidden',
           position: 'relative',
         }}
-        ref={chartRef} // Attach the ref to measure dimensions
+        ref={chartRef}
       >
         <Box
           sx={{
@@ -319,7 +314,6 @@ const AnalyseCorrelations: React.FC = () => {
           />
         </Box>
 
-        {/* Download button outside the chartRef */}
         <Tooltip title={'Download Chart as PNG'}>
           <IconButton
             onClick={handleDownload}

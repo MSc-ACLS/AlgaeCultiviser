@@ -1,7 +1,7 @@
 import { Box, Typography, FormControlLabel, Checkbox, Button, IconButton, Tooltip } from '@mui/material'
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '../store'
-import { ResponsiveLineCanvas } from '@nivo/line'
+import { PointTooltipProps, ResponsiveLineCanvas } from '@nivo/line'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { parse, isValid } from 'date-fns'
 import { useTheme } from '@mui/material/styles'
@@ -79,8 +79,8 @@ const AnalyseTimeseries: React.FC = () => {
     return normalisedData
   }
 
-  const data = useMemo(() => {
-    if (!selectedDataset) return []
+  const { metadataSeries, mainSeries } = useMemo(() => {
+    if (!selectedDataset) return { metadataSeries: [], mainSeries: [] }
 
     const rawData = selectedDataset.data[0].slice(1).map((variable: string, index: number) => ({
       id: variable,
@@ -98,9 +98,9 @@ const AnalyseTimeseries: React.FC = () => {
         if (isISODate) {
           parsedDate = new Date(x)
         } else {
-          // Normalise the date string
-          const normalisedDate = x.trim().replace(/(\.\d{1,2})$/, (match: string) => match.padEnd(4, '0'))
-          parsedDate = parse(normalisedDate, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
+          // Normalize the date string
+          const normalizedDate = x.trim().replace(/(\.\d{1,2})$/, (match: string) => match.padEnd(4, '0'))
+          parsedDate = parse(normalizedDate, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
         }
 
         if (!isValid(parsedDate) || !isNumerical) {
@@ -112,13 +112,103 @@ const AnalyseTimeseries: React.FC = () => {
       }).filter((point) => point !== null),
     }))
 
-    // Filter out datasets with no valid data points
-    return normaliseData(rawData.filter((variableData: { data: string | any[] }) => variableData.data.length > 0))
+    // Add metadata if it exists
+    if (selectedDataset.metadata) {
+      const metadataRawData = selectedDataset.metadata.data[0].slice(1).map((variable: string, index: number) => ({
+        id: `Metadata: ${variable}`,
+        data: selectedDataset.metadata?.data.slice(2).map((row) => {
+          const x = row[0]
+          const y = row[index + 1]
+
+          // Check if the value is numerical
+          const isNumerical = !isNaN(parseFloat(y)) && isFinite(y)
+
+          let parsedDate = parse(x, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
+          if (!isValid(parsedDate) || !isNumerical) {
+            console.warn(`Invalid metadata point skipped: raw=${x}, parsed=${parsedDate}, y=${y}`)
+            return null
+          }
+
+          return { x: parsedDate, y: parseFloat(y) }
+        }).filter((point) => point !== null),
+      }))
+
+      rawData.push(...metadataRawData)
+    }
+
+    // Normalize and split data
+    const normalised = normaliseData(
+      rawData.filter((variableData: { data: string | any[] }) => variableData.data.length > 0)
+    )
+
+    const metadataSeries = normalised.filter((d) => d.id.startsWith('Metadata:'))
+    const mainSeries = normalised.filter((d) => !d.id.startsWith('Metadata:'))
+
+    console.log('Metadata series:', metadataSeries)
+
+    return { metadataSeries, mainSeries }
   }, [selectedDataset])
+
+  const data = useMemo(() => {
+    const styledSeries = [
+      ...mainSeries.map(s => ({ ...s, pointSize: 0, lineWidth: 1 })),
+      ...metadataSeries.map(s => ({ ...s, pointSize: 8, lineWidth: 0 }))
+    ]
+    
+    return styledSeries
+  }, [mainSeries, metadataSeries])
 
   console.log('Normalised data:', data)
 
   const theme = useTheme()
+
+  const sharedChartProps = {
+    margin: { top: 20, right: 200, bottom: 40, left: 50 },
+    enableGridX: false,
+    enableGridY: false,
+    theme: {
+      axis: {
+        ticks: {
+          text: {
+            fill: theme.palette.text.secondary,
+          },
+        },
+        legend: {
+          text: {
+            fill: theme.palette.text.secondary,
+          },
+        },
+      },
+    },
+    tooltip: ({ point }: PointTooltipProps) => {
+      const isCursorLow = point.y > 100
+      const originalY = (point.data as any).originalY
+
+      const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
+      const unit =
+        variableIndex !== undefined && variableIndex >= 0
+          ? selectedDataset?.data[1][variableIndex]
+          : ''
+
+      return (
+        <Box
+          sx={{
+            background: point.serieColor,
+            borderRadius: '8px',
+            padding: '8px',
+            textAlign: 'left',
+            transform: isCursorLow ? null : 'translateY(+150%)',
+          }}
+        >
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            {point.serieId} {unit && `[${unit}]`}
+          </Typography>
+          <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
+          <Typography variant="body2">Value: {originalY?.toString()}</Typography>
+        </Box>
+      )
+    }
+  }
 
   return (
     <Box
@@ -157,22 +247,17 @@ const AnalyseTimeseries: React.FC = () => {
           position: 'relative',
         }}
       >
-        <Box
-          ref={chartRef}
-          sx={{
-            height: '100%',
-            width: '100%',
-          }}
-        >
+        <Box ref={chartRef} sx={{ height: '100%', width: '100%', position: 'relative' }}>
           <ResponsiveLineCanvas
-            data={data.filter((d: { id: string }) => visibleLines[d.id] !== false)}
-            margin={{ top: 20, right: 200, bottom: 40, left: 50 }}
+            data={mainSeries.filter((d) => visibleLines[d.id] !== false)}
+            pointSize={0}
+            lineWidth={1} 
+            xFormat='time:%d.%m.%Y %H:%M'
             xScale={{
               type: 'time',
-              format: '%Y-%m-%dT%H:%M:%S.%LZ',
+              format: '%d.%m.%Y %H:%M',
               precision: 'minute',
             }}
-            xFormat="time:%d.%m.%Y %H:%M"
             yScale={{
               type: 'linear',
               min: 'auto',
@@ -189,19 +274,7 @@ const AnalyseTimeseries: React.FC = () => {
               format: '%d.%m.%Y %H:%M',
               tickValues: 5,
             }}
-            axisLeft={{
-              tickSize: 2,
-              tickPadding: 5,
-              legend: 'Norm. Value',
-              legendOffset: -40,
-              legendPosition: 'middle',
-            }}
             colors={{ scheme: 'category10' }}
-            curve="monotoneX"
-            enableGridX={false}
-            enableGridY={false}
-            pointSize={0}
-            lineWidth={1}
             legends={[
               {
                 anchor: 'right',
@@ -212,10 +285,9 @@ const AnalyseTimeseries: React.FC = () => {
                 itemWidth: 100,
                 itemHeight: 20,
                 itemsSpacing: 4,
-                symbolSize: 20,
-                symbolShape: 'circle',
+                symbolSize: 10,
                 itemDirection: 'left-to-right',
-                itemTextColor: '#777',
+                itemTextColor: theme.palette.text.secondary,
                 effects: [
                   {
                     on: 'hover',
@@ -227,49 +299,35 @@ const AnalyseTimeseries: React.FC = () => {
                 ],
               },
             ]}
-            tooltip={({ point }) => {
-              const isCursorLow = point.y > 100
-              const originalY = (point.data as any).originalY
-
-              const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
-              const unit =
-                variableIndex !== undefined && variableIndex >= 0
-                  ? selectedDataset?.data[1][variableIndex]
-                  : ''
-
-              return (
-                <Box
-                  sx={{
-                    background: point.serieColor,
-                    borderRadius: '8px',
-                    padding: '8px',
-                    textAlign: 'left',
-                    transform: isCursorLow ? null : 'translateY(+150%)',
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                    {point.serieId} {unit && `[${unit}]`}
-                  </Typography>
-                  <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
-                  <Typography variant="body2">Value: {originalY?.toString()}</Typography>
-                </Box>
-              )
-            }}
-            theme={{
-              axis: {
-                ticks: {
-                  text: {
-                    fill: theme.palette.text.secondary,
-                  },
-                },
-                legend: {
-                  text: {
-                    fill: theme.palette.text.secondary,
-                  },
-                },
-              },
-            }}
+            {...sharedChartProps}
           />
+
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              //pointerEvents: 'none'
+            }}
+          >
+            <ResponsiveLineCanvas
+              data={metadataSeries.filter((d) => visibleLines[d.id] !== false)}
+              pointSize={8}
+              legends={[]}
+              isInteractive={true}
+              xScale={{
+                type: 'time',
+                format: '%Y-%m-%dT%H:%M:%S.%LZ',
+                precision: 'minute',
+              }}
+              layers={[
+                'points',
+              ]}
+              {...sharedChartProps}
+            />
+          </div>
         </Box>
 
         <Tooltip title={'Download Chart as PNG'}>
