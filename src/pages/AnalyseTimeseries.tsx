@@ -8,6 +8,25 @@ import { useTheme } from '@mui/material/styles'
 import { handleDownloadChart } from '../utils/downloadChart'
 import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
 
+type DataPoint = {
+  x: Date
+  y: number
+  originalY?: number
+}
+
+type Series = {
+  id: string
+  data: DataPoint[]
+  color?: string
+}
+
+type ClosestMetadataPoint = {
+  x: number
+  y: number
+  serieId: string
+  serieColor?: string
+}
+
 const AnalyseTimeseries: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
   const selectedDatasetId = useSelector((state: RootState) => state.data.selectedDatasetId)
@@ -17,6 +36,14 @@ const AnalyseTimeseries: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null)
   const dispatch = useDispatch()
   const currentTheme = useSelector((state: RootState) => state.theme)
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    x: number
+    y: number
+    serieId: string
+    serieColor: string
+    data: any
+    source: 'main' | 'metadata'
+  } | null>(null)
 
   useEffect(() => {
     if (selectedDataset) {
@@ -80,7 +107,7 @@ const AnalyseTimeseries: React.FC = () => {
   }
 
   const { metadataSeries, mainSeries } = useMemo(() => {
-    if (!selectedDataset) return { metadataSeries: [], mainSeries: [] }
+    if (!selectedDataset) return { metadataSeries: [] as Series[], mainSeries: [] as Series[] }
 
     const rawData = selectedDataset.data[0].slice(1).map((variable: string, index: number) => ({
       id: variable,
@@ -109,7 +136,7 @@ const AnalyseTimeseries: React.FC = () => {
         }
 
         return { x: parsedDate, y: parseFloat(y) }
-      }).filter((point) => point !== null),
+      }).filter((point) => point !== null) as DataPoint[],
     }))
 
     // Add metadata if it exists
@@ -130,7 +157,7 @@ const AnalyseTimeseries: React.FC = () => {
           }
 
           return { x: parsedDate, y: parseFloat(y) }
-        }).filter((point) => point !== null),
+        }).filter((point) => point !== null) as DataPoint[],
       }))
 
       rawData.push(...metadataRawData)
@@ -141,10 +168,8 @@ const AnalyseTimeseries: React.FC = () => {
       rawData.filter((variableData: { data: string | any[] }) => variableData.data.length > 0)
     )
 
-    const metadataSeries = normalised.filter((d) => d.id.startsWith('Metadata:'))
-    const mainSeries = normalised.filter((d) => !d.id.startsWith('Metadata:'))
-
-    console.log('Metadata series:', metadataSeries)
+    const metadataSeries = normalised.filter((d) => d.id.startsWith('Metadata:')) as Series[]
+    const mainSeries = normalised.filter((d) => !d.id.startsWith('Metadata:')) as Series[]
 
     return { metadataSeries, mainSeries }
   }, [selectedDataset])
@@ -156,6 +181,21 @@ const AnalyseTimeseries: React.FC = () => {
     ]
     
     return styledSeries
+  }, [mainSeries, metadataSeries])
+
+  const combinedSeries = useMemo(() => {
+    return [
+      ...mainSeries.map((series) => ({
+        ...series,
+        lineWidth: 1, // Visible lines for main series
+        pointSize: 0, // No points for main series
+      })),
+      ...metadataSeries.map((series) => ({
+        ...series,
+        lineWidth: 0, // No lines for metadata
+        pointSize: 0, // Invisible points for metadata
+      })),
+    ]
   }, [mainSeries, metadataSeries])
 
   console.log('Normalised data:', data)
@@ -180,34 +220,54 @@ const AnalyseTimeseries: React.FC = () => {
         },
       },
     },
-    tooltip: ({ point }: PointTooltipProps) => {
-      const isCursorLow = point.y > 100
-      const originalY = (point.data as any).originalY
+    // tooltip: ({ point }: PointTooltipProps) => {
+    //   const isCursorLow = point.y > 100
+    //   const originalY = (point.data as any).originalY
 
-      const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
-      const unit =
-        variableIndex !== undefined && variableIndex >= 0
-          ? selectedDataset?.data[1][variableIndex]
-          : ''
+    //   const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
+    //   const unit =
+    //     variableIndex !== undefined && variableIndex >= 0
+    //       ? selectedDataset?.data[1][variableIndex]
+    //       : ''
 
-      return (
-        <Box
-          sx={{
-            background: point.serieColor,
-            borderRadius: '8px',
-            padding: '8px',
-            textAlign: 'left',
-            transform: isCursorLow ? null : 'translateY(+150%)',
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-            {point.serieId} {unit && `[${unit}]`}
-          </Typography>
-          <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
-          <Typography variant="body2">Value: {originalY?.toString()}</Typography>
-        </Box>
-      )
-    }
+    //   return (
+    //     <Box
+    //       sx={{
+    //         background: point.serieColor,
+    //         borderRadius: '8px',
+    //         padding: '8px',
+    //         textAlign: 'left',
+    //         transform: isCursorLow ? null : 'translateY(+150%)',
+    //       }}
+    //     >
+    //       <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+    //         {point.serieId} {unit && `[${unit}]`}
+    //       </Typography>
+    //       <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
+    //       <Typography variant="body2">Value: {originalY?.toString()}</Typography>
+    //     </Box>
+    //   )
+    // }
+  }
+
+  const findClosestMetadataPoint = (x: number, y: number): ClosestMetadataPoint | null => {
+    let closestPoint: ClosestMetadataPoint | null = null
+    let minDistance = 10 // Threshold in pixels
+  
+    metadataSeries.forEach((series) => {
+      series.data.forEach((point) => {
+        const dx = x - point.x.getTime()
+        const dy = y - point.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+  
+        if (distance < minDistance) {
+          closestPoint = { x: point.x.getTime(), y: point.y, serieId: series.id, serieColor: series.color }
+          minDistance = distance
+        }
+      })
+    })
+  
+    return closestPoint
   }
 
   return (
@@ -246,13 +306,13 @@ const AnalyseTimeseries: React.FC = () => {
           overflow: 'hidden',
           position: 'relative',
         }}
+        
       >
         <Box ref={chartRef} sx={{ height: '100%', width: '100%', position: 'relative' }}>
           <ResponsiveLineCanvas
-            data={mainSeries.filter((d) => visibleLines[d.id] !== false)}
+            data={combinedSeries}
             pointSize={0}
-            lineWidth={1} 
-            xFormat='time:%d.%m.%Y %H:%M'
+            xFormat="time:%d.%m.%Y %H:%M"
             xScale={{
               type: 'time',
               format: '%d.%m.%Y %H:%M',
@@ -299,6 +359,17 @@ const AnalyseTimeseries: React.FC = () => {
                 ],
               },
             ]}
+            onMouseMove={(point) => {
+              setHoveredPoint({
+                x: point.x,
+                y: point.y,
+                serieId: point.serieId as string,
+                serieColor: point.serieColor,
+                data: point.data as DataPoint,
+                source: typeof point.serieId === 'string' && point.serieId.startsWith('Metadata:') ? 'metadata' : 'main',
+              })
+            }}
+            onMouseLeave={() => setHoveredPoint(null)}
             {...sharedChartProps}
           />
 
@@ -309,14 +380,14 @@ const AnalyseTimeseries: React.FC = () => {
               left: 0,
               width: '100%',
               height: '100%',
-              //pointerEvents: 'none'
+              pointerEvents: 'none'
             }}
           >
             <ResponsiveLineCanvas
               data={metadataSeries.filter((d) => visibleLines[d.id] !== false)}
               pointSize={8}
               legends={[]}
-              isInteractive={true}
+              isInteractive={false} // Disable interactivity
               xScale={{
                 type: 'time',
                 format: '%Y-%m-%dT%H:%M:%S.%LZ',
@@ -325,10 +396,43 @@ const AnalyseTimeseries: React.FC = () => {
               layers={[
                 'points',
               ]}
+              // onMouseMove={(point) => {
+              //   setHoveredPoint({
+              //     x: point.x,
+              //     y: point.y,
+              //     serieId: point.serieId as string,
+              //     serieColor: point.serieColor,
+              //     data: point.data as DataPoint, // Explicitly cast to DataPoint
+              //     source: 'metadata',
+              //   })
+              // }}
+              //onMouseLeave={() => setHoveredPoint(null)}            
               {...sharedChartProps}
             />
           </div>
         </Box>
+
+        {hoveredPoint && (
+          <Box
+            sx={{
+              background: hoveredPoint.serieColor,
+              borderRadius: '8px',
+              padding: '8px',
+              textAlign: 'left',
+              transform: hoveredPoint.y > 100 ? null : 'translateY(+150%)',
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+              {hoveredPoint.serieId} ({hoveredPoint.source === 'main' ? 'Main' : 'Metadata'})
+            </Typography>
+            <Typography variant="body2">
+              Time: {new Date(hoveredPoint.data.x).toLocaleString()}
+            </Typography>
+            <Typography variant="body2">
+              Value: {hoveredPoint.data.originalY?.toString()}
+            </Typography>
+          </Box>
+        )}
 
         <Tooltip title={'Download Chart as PNG'}>
           <IconButton
