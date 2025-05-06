@@ -105,10 +105,10 @@ const AnalyseCorrelations: React.FC = () => {
       {
         id: 'Regression Line',
         data: regressionLine,
-        rValue, 
+        rValue,
       },
       {
-        id: 'Regression Line Points', 
+        id: 'Regression Line Points',
         data: regressionLinePoints,
       },
     ]
@@ -139,7 +139,6 @@ const AnalyseCorrelations: React.FC = () => {
   const RegressionLineLayer = (ctx: CanvasRenderingContext2D, props: any) => {
     if (!chartDimensions) return
 
-    const { width, height } = chartDimensions
     const regressionLine = scatterData.find((d) => d.id === 'Regression Line')?.data
     if (!regressionLine || regressionLine.length < 2) {
       return

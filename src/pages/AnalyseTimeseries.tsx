@@ -210,6 +210,32 @@ const AnalyseTimeseries: React.FC = () => {
     }
   }
 
+  console.log('Shared chart props:', sharedChartProps)
+
+  const MetadataScatterplotLayer = ({ ctx, xScale, yScale }: any) => {
+    if (!xScale || !yScale ) {
+      console.error('xScale, yScale, or margin is missing in MetadataScatterplotLayer')
+      return
+    }
+  
+    ctx.save()
+  
+    metadataSeries.forEach((metadata) => {
+      metadata.data.forEach((point) => {
+        const x = xScale(point.x)
+        const y = yScale(point.y)
+  
+        ctx.beginPath()
+        ctx.arc(x, y, 8, 0, 2 * Math.PI) // Larger dots for metadata points
+        ctx.fillStyle = 'white' // Use the metadata series color or fallback
+        ctx.fill()
+        ctx.closePath()
+      })
+    })
+  
+    ctx.restore()
+  }
+
   return (
     <Box
       sx={{
@@ -250,9 +276,9 @@ const AnalyseTimeseries: React.FC = () => {
         <Box ref={chartRef} sx={{ height: '100%', width: '100%', position: 'relative' }}>
           <ResponsiveLineCanvas
             data={mainSeries.filter((d) => visibleLines[d.id] !== false)}
-            pointSize={0}
-            lineWidth={1} 
-            xFormat='time:%d.%m.%Y %H:%M'
+            pointSize={0} // No points for main series
+            lineWidth={1} // Lines for main series
+            xFormat="time:%d.%m.%Y %H:%M"
             xScale={{
               type: 'time',
               format: '%d.%m.%Y %H:%M',
@@ -299,35 +325,20 @@ const AnalyseTimeseries: React.FC = () => {
                 ],
               },
             ]}
+            layers={[
+              'grid',
+              'markers',
+              'axes',
+              'areas',
+              'lines',
+              'points',
+              MetadataScatterplotLayer, // Add the custom scatterplot layer
+              'slices',
+              'mesh',
+              'legends',
+            ]}
             {...sharedChartProps}
           />
-
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              //pointerEvents: 'none'
-            }}
-          >
-            <ResponsiveLineCanvas
-              data={metadataSeries.filter((d) => visibleLines[d.id] !== false)}
-              pointSize={8}
-              legends={[]}
-              isInteractive={true}
-              xScale={{
-                type: 'time',
-                format: '%Y-%m-%dT%H:%M:%S.%LZ',
-                precision: 'minute',
-              }}
-              layers={[
-                'points',
-              ]}
-              {...sharedChartProps}
-            />
-          </div>
         </Box>
 
         <Tooltip title={'Download Chart as PNG'}>
