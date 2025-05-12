@@ -193,34 +193,36 @@ const AnalyseTimeseries: React.FC = () => {
         },
       },
     },
-    tooltip: ({ point }: PointTooltipProps) => {
-      const isCursorLow = point.y > 100
-      const originalY = (point.data as any).originalY
+    tooltip: tooltip
+      ? () => null // Render nothing when metadata tooltip is active
+      : ({ point }: PointTooltipProps) => {
+          const isCursorLow = point.y > 100
+          const originalY = (point.data as any).originalY
 
-      const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
-      const unit =
-        variableIndex !== undefined && variableIndex >= 0
-          ? selectedDataset?.data[1][variableIndex]
-          : ''
+          const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
+          const unit =
+            variableIndex !== undefined && variableIndex >= 0
+              ? selectedDataset?.data[1][variableIndex]
+              : ''
 
-      return (
-        <Box
-          sx={{
-            background: point.serieColor,
-            borderRadius: '8px',
-            padding: '8px',
-            textAlign: 'left',
-            transform: isCursorLow ? null : 'translateY(+150%)',
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-            {point.serieId} {unit && `[${unit}]`}
-          </Typography>
-          <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
-          <Typography variant="body2">Value: {originalY?.toString()}</Typography>
-        </Box>
-      )
-    }
+          return (
+            <Box
+              sx={{
+                background: point.serieColor,
+                borderRadius: '8px',
+                padding: '8px',
+                textAlign: 'left',
+                transform: isCursorLow ? null : 'translateY(+150%)',
+              }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                {point.serieId} {unit && `[${unit}]`}
+              </Typography>
+              <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
+              <Typography variant="body2">Value: {originalY?.toString()}</Typography>
+            </Box>
+          )
+        },
   }
 
   console.log('Shared chart props:', sharedChartProps)
@@ -271,7 +273,7 @@ const AnalyseTimeseries: React.FC = () => {
           const y = yScale(point.y)
           const distance = Math.sqrt((x - mouseX) ** 2 + (y - mouseY) ** 2)
   
-          if (distance < 50 && distance < minDistance) {
+          if (distance < 20 && distance < minDistance) {
             closestPoint = { x: point.x, y: point.y, serieId: metadata.id }
             minDistance = distance
           }
@@ -279,6 +281,7 @@ const AnalyseTimeseries: React.FC = () => {
       })
   
       if (closestPoint) {
+        const isCursorLow = mouseY > 100
         const tooltipContent = (
           <Box
             sx={{
@@ -287,6 +290,7 @@ const AnalyseTimeseries: React.FC = () => {
               padding: '8px',
               textAlign: 'left',
               boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
+              transform: isCursorLow ? null : 'translateY(+150%)',
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
@@ -296,7 +300,7 @@ const AnalyseTimeseries: React.FC = () => {
               Time: {(closestPoint as MetadataPoint).x.toLocaleString()}
             </Typography>
             <Typography variant="body2">
-              Value: {(closestPoint as MetadataPoint).y}
+              Value: {(closestPoint as MetadataPoint).y.toPrecision(3)}
             </Typography>
           </Box>
         )
@@ -304,7 +308,7 @@ const AnalyseTimeseries: React.FC = () => {
         setTooltip({
           content: tooltipContent,
           x: mouseX + margin.left,
-          y: mouseY + margin.top,
+          y: mouseY + margin.top - 15,
         })
         return
       }
