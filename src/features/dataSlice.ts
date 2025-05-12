@@ -24,7 +24,7 @@ const initialState: DataState = {
 }
 
 export const loadInitialData = createAsyncThunk('data/loadInitialData', async () => {
-  const response = await fetch('/data/datazhawfull.csv')
+  const response = await fetch('/data/dataagro24_run1.csv')
   const fileContent = await response.text()
   let parsedData: any[] = []
   Papa.parse(fileContent, {
@@ -39,7 +39,7 @@ export const loadInitialData = createAsyncThunk('data/loadInitialData', async ()
   return [{
     id: 0,
     data: parsedDataset,
-    filename: 'datazhawfull.csv'
+    filename: 'dataagro24_run1.csv'
   }]
 })
 

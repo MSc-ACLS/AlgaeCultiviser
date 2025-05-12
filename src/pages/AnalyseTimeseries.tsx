@@ -2,11 +2,23 @@ import { Box, Typography, FormControlLabel, Checkbox, Button, IconButton, Toolti
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '../store'
 import { PointTooltipProps, ResponsiveLineCanvas } from '@nivo/line'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { parse, isValid } from 'date-fns'
 import { useTheme } from '@mui/material/styles'
 import { handleDownloadChart } from '../utils/downloadChart'
 import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
+import React from 'react'
+
+type MetadataPoint = {
+  x: Date
+  y: number
+  serieId: string
+}
+
+type MetadataSeries = {
+  id: string
+  data: MetadataPoint[]
+}
 
 const AnalyseTimeseries: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
@@ -17,6 +29,12 @@ const AnalyseTimeseries: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null)
   const dispatch = useDispatch()
   const currentTheme = useSelector((state: RootState) => state.theme)
+  const chartScalesRef = useRef<{ xScale: any; yScale: any } | null>(null)
+  const [tooltip, setTooltip] = useState<{
+    content: React.JSX.Element | null
+    x: number
+    y: number
+  } | null>(null)
 
   useEffect(() => {
     if (selectedDataset) {
@@ -55,6 +73,7 @@ const AnalyseTimeseries: React.FC = () => {
             x: point.x,
             originalY: point.y,
             y: 0.5,
+            serieId: variableData.id, // Add serieId here
           })),
         }
       }
@@ -71,6 +90,7 @@ const AnalyseTimeseries: React.FC = () => {
             x: point.x,
             originalY: point.y,
             y: (point.y - min) / (max - min),
+            serieId: variableData.id, // Add serieId here
           }
         }).filter((point) => point !== null),
       }
@@ -80,7 +100,7 @@ const AnalyseTimeseries: React.FC = () => {
   }
 
   const { metadataSeries, mainSeries } = useMemo(() => {
-    if (!selectedDataset) return { metadataSeries: [], mainSeries: [] }
+    if (!selectedDataset) return { metadataSeries: [] as MetadataSeries[], mainSeries: [] }
 
     const rawData = selectedDataset.data[0].slice(1).map((variable: string, index: number) => ({
       id: variable,
@@ -88,17 +108,13 @@ const AnalyseTimeseries: React.FC = () => {
         const x = row[0]
         const y = row[index + 1]
 
-        // Check if the value is numerical
         const isNumerical = !isNaN(parseFloat(y)) && isFinite(y)
-
-        // Check if the date is in ISO format
         const isISODate = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(x)
 
         let parsedDate
         if (isISODate) {
           parsedDate = new Date(x)
         } else {
-          // Normalize the date string
           const normalizedDate = x.trim().replace(/(\.\d{1,2})$/, (match: string) => match.padEnd(4, '0'))
           parsedDate = parse(normalizedDate, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
         }
@@ -112,7 +128,6 @@ const AnalyseTimeseries: React.FC = () => {
       }).filter((point) => point !== null),
     }))
 
-    // Add metadata if it exists
     if (selectedDataset.metadata) {
       const metadataRawData = selectedDataset.metadata.data[0].slice(1).map((variable: string, index: number) => ({
         id: `Metadata: ${variable}`,
@@ -120,11 +135,10 @@ const AnalyseTimeseries: React.FC = () => {
           const x = row[0]
           const y = row[index + 1]
 
-          // Check if the value is numerical
           const isNumerical = !isNaN(parseFloat(y)) && isFinite(y)
 
           let parsedDate = parse(x, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
-          if (!isValid(parsedDate) || !isNumerical) {
+          if (!isValid(parsedDate) || isNaN(parsedDate.getTime()) || !isNumerical) {
             console.warn(`Invalid metadata point skipped: raw=${x}, parsed=${parsedDate}, y=${y}`)
             return null
           }
@@ -136,12 +150,11 @@ const AnalyseTimeseries: React.FC = () => {
       rawData.push(...metadataRawData)
     }
 
-    // Normalize and split data
     const normalised = normaliseData(
       rawData.filter((variableData: { data: string | any[] }) => variableData.data.length > 0)
     )
 
-    const metadataSeries = normalised.filter((d) => d.id.startsWith('Metadata:'))
+    const metadataSeries: MetadataSeries[] = normalised.filter((d) => d.id.startsWith('Metadata:'))
     const mainSeries = normalised.filter((d) => !d.id.startsWith('Metadata:'))
 
     console.log('Metadata series:', metadataSeries)
@@ -236,6 +249,82 @@ const AnalyseTimeseries: React.FC = () => {
     ctx.restore()
   }
 
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (!chartScalesRef.current || !metadataSeries) return
+  
+      const { xScale, yScale } = chartScalesRef.current
+  
+      const rect = chartRef.current?.getBoundingClientRect()
+      if (!rect) return
+  
+      const mouseX = event.clientX - rect.left
+      const mouseY = event.clientY - rect.top
+  
+      let closestPoint: MetadataPoint | null = null // Explicitly typed
+      let minDistance = Infinity
+  
+      metadataSeries.forEach((metadata) => {
+        metadata.data.forEach((point) => {
+          const x = xScale(point.x)
+          const y = yScale(point.y)
+          const distance = Math.sqrt((x - mouseX) ** 2 + (y - mouseY) ** 2)
+  
+          if (distance < 50 && distance < minDistance) {
+            closestPoint = { x: point.x, y: point.y, serieId: metadata.id }
+            minDistance = distance
+          }
+        })
+      })
+  
+      if (closestPoint) {
+        console.log('Closest point:', closestPoint)
+        const tooltipContent = (
+          <Box
+            sx={{
+              background: theme.palette.background.paper,
+              borderRadius: '8px',
+              padding: '8px',
+              textAlign: 'left',
+              boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            {(closestPoint as MetadataPoint).serieId}
+            </Typography>
+            <Typography variant="body2">
+            Time: {(closestPoint as MetadataPoint).x.toLocaleString()}
+            </Typography>
+            <Typography variant="body2">
+            Value: {(closestPoint as MetadataPoint).y}
+            </Typography>
+          </Box>
+        )
+  
+        setTooltip({
+          content: tooltipContent,
+          x: mouseX,
+          y: mouseY,
+        })
+        return
+      }
+  
+      setTooltip(null)
+    },
+    [metadataSeries]
+  )
+
+  const ScalesCaptureLayer = (props: { xScale: any; yScale: any }) => {
+    const { xScale, yScale } = props
+  
+    if (xScale && yScale) {
+      chartScalesRef.current = { xScale, yScale }
+      console.log('Scales captured:', chartScalesRef.current)
+    }
+  
+    return null
+  }
+
   return (
     <Box
       sx={{
@@ -273,7 +362,7 @@ const AnalyseTimeseries: React.FC = () => {
           position: 'relative',
         }}
       >
-        <Box ref={chartRef} sx={{ height: '100%', width: '100%', position: 'relative' }}>
+        <Box ref={chartRef} sx={{ height: '100%', width: '100%', position: 'relative' }} onMouseMove={(event) => handleMouseMove(event)} onMouseLeave={() => setTooltip(null)}>
           <ResponsiveLineCanvas
             data={mainSeries.filter((d) => visibleLines[d.id] !== false)}
             pointSize={0} // No points for main series
@@ -332,7 +421,8 @@ const AnalyseTimeseries: React.FC = () => {
               'areas',
               'lines',
               'points',
-              MetadataScatterplotLayer, // Add the custom scatterplot layer
+              MetadataScatterplotLayer,
+              (props) => ScalesCaptureLayer(props),
               'slices',
               'mesh',
               'legends',
@@ -340,6 +430,21 @@ const AnalyseTimeseries: React.FC = () => {
             {...sharedChartProps}
           />
         </Box>
+
+        {tooltip && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: tooltip.y,
+              left: tooltip.x,
+              pointerEvents: 'none',
+              transform: 'translate(-50%, -100%)',
+              zIndex: 10,
+            }}
+          >
+            {tooltip.content}
+          </Box>
+        )}
 
         <Tooltip title={'Download Chart as PNG'}>
           <IconButton
