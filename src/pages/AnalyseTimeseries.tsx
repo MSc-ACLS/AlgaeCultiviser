@@ -258,10 +258,11 @@ const AnalyseTimeseries: React.FC = () => {
       const rect = chartRef.current?.getBoundingClientRect()
       if (!rect) return
   
-      const mouseX = event.clientX - rect.left
-      const mouseY = event.clientY - rect.top
+      const margin = sharedChartProps.margin
+      const mouseX = event.clientX - rect.left - margin.left
+      const mouseY = event.clientY - rect.top - margin.top
   
-      let closestPoint: MetadataPoint | null = null // Explicitly typed
+      let closestPoint: MetadataPoint | null = null
       let minDistance = Infinity
   
       metadataSeries.forEach((metadata) => {
@@ -278,7 +279,6 @@ const AnalyseTimeseries: React.FC = () => {
       })
   
       if (closestPoint) {
-        console.log('Closest point:', closestPoint)
         const tooltipContent = (
           <Box
             sx={{
@@ -290,28 +290,28 @@ const AnalyseTimeseries: React.FC = () => {
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-            {(closestPoint as MetadataPoint).serieId}
+              {(closestPoint as MetadataPoint).serieId}
             </Typography>
             <Typography variant="body2">
-            Time: {(closestPoint as MetadataPoint).x.toLocaleString()}
+              Time: {(closestPoint as MetadataPoint).x.toLocaleString()}
             </Typography>
             <Typography variant="body2">
-            Value: {(closestPoint as MetadataPoint).y}
+              Value: {(closestPoint as MetadataPoint).y}
             </Typography>
           </Box>
         )
   
         setTooltip({
           content: tooltipContent,
-          x: mouseX,
-          y: mouseY,
+          x: mouseX + margin.left,
+          y: mouseY + margin.top,
         })
         return
       }
   
       setTooltip(null)
     },
-    [metadataSeries]
+    [metadataSeries, sharedChartProps.margin, theme]
   )
 
   const ScalesCaptureLayer = (props: { xScale: any; yScale: any }) => {
