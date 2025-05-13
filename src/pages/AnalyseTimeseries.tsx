@@ -1,4 +1,4 @@
-import { Box, Typography, FormControlLabel, Checkbox, Button, IconButton, Tooltip } from '@mui/material'
+import { Box, Typography, FormControlLabel, Checkbox, IconButton, Tooltip } from '@mui/material'
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '../store'
 import { PointTooltipProps, ResponsiveLineCanvas } from '@nivo/line'
@@ -73,7 +73,7 @@ const AnalyseTimeseries: React.FC = () => {
             x: point.x,
             originalY: point.y,
             y: 0.5,
-            serieId: variableData.id, // Add serieId here
+            serieId: variableData.id,
           })),
         }
       }
@@ -90,7 +90,7 @@ const AnalyseTimeseries: React.FC = () => {
             x: point.x,
             originalY: point.y,
             y: (point.y - min) / (max - min),
-            serieId: variableData.id, // Add serieId here
+            serieId: variableData.id,
           }
         }).filter((point) => point !== null),
       }
@@ -194,7 +194,7 @@ const AnalyseTimeseries: React.FC = () => {
       },
     },
     tooltip: tooltip
-      ? () => null // Render nothing when metadata tooltip is active
+      ? () => null
       : ({ point }: PointTooltipProps) => {
           const isCursorLow = point.y > 100
           const originalY = (point.data as any).originalY
@@ -241,8 +241,8 @@ const AnalyseTimeseries: React.FC = () => {
         const y = yScale(point.y)
   
         ctx.beginPath()
-        ctx.arc(x, y, 8, 0, 2 * Math.PI) // Larger dots for metadata points
-        ctx.fillStyle = 'white' // Use the metadata series color or fallback
+        ctx.arc(x, y, 8, 0, 2 * Math.PI)
+        ctx.fillStyle = theme.palette.text.primary
         ctx.fill()
         ctx.closePath()
       })
@@ -369,8 +369,8 @@ const AnalyseTimeseries: React.FC = () => {
         <Box ref={chartRef} sx={{ height: '100%', width: '100%', position: 'relative' }} onMouseMove={(event) => handleMouseMove(event)} onMouseLeave={() => setTooltip(null)}>
           <ResponsiveLineCanvas
             data={mainSeries.filter((d) => visibleLines[d.id] !== false)}
-            pointSize={0} // No points for main series
-            lineWidth={1} // Lines for main series
+            pointSize={0}
+            lineWidth={1}
             xFormat="time:%d.%m.%Y %H:%M"
             xScale={{
               type: 'time',
