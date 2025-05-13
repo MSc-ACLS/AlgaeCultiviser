@@ -8,6 +8,7 @@ import { useTheme } from '@mui/material/styles'
 import { handleDownloadChart } from '../utils/downloadChart'
 import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
 import React from 'react'
+import { schemeSet1 } from 'd3-scale-chromatic'
 
 type MetadataPoint = {
   x: Date
@@ -157,10 +158,15 @@ const AnalyseTimeseries: React.FC = () => {
     const metadataSeries: MetadataSeries[] = normalised.filter((d) => d.id.startsWith('Metadata:'))
     const mainSeries = normalised.filter((d) => !d.id.startsWith('Metadata:'))
 
-    console.log('Metadata series:', metadataSeries)
-
     return { metadataSeries, mainSeries }
   }, [selectedDataset])
+
+  const metadataColors = useMemo(() => {
+    return metadataSeries.reduce((acc, metadata, index) => {
+      acc[metadata.id] = schemeSet1[index % schemeSet1.length]
+      return acc
+    }, {} as { [key: string]: string })
+  }, [metadataSeries])
 
   const data = useMemo(() => {
     const styledSeries = [
@@ -170,8 +176,6 @@ const AnalyseTimeseries: React.FC = () => {
     
     return styledSeries
   }, [mainSeries, metadataSeries])
-
-  console.log('Normalised data:', data)
 
   const theme = useTheme()
 
@@ -225,11 +229,8 @@ const AnalyseTimeseries: React.FC = () => {
         },
   }
 
-  console.log('Shared chart props:', sharedChartProps)
-
   const MetadataScatterplotLayer = ({ ctx, xScale, yScale }: any) => {
-    if (!xScale || !yScale ) {
-      console.error('xScale, yScale, or margin is missing in MetadataScatterplotLayer')
+    if (!xScale || !yScale) {
       return
     }
   
@@ -242,7 +243,7 @@ const AnalyseTimeseries: React.FC = () => {
   
         ctx.beginPath()
         ctx.arc(x, y, 8, 0, 2 * Math.PI)
-        ctx.fillStyle = theme.palette.text.primary
+        ctx.fillStyle = metadataColors[metadata.id] || theme.palette.text.primary // Use assigned color or fallback
         ctx.fill()
         ctx.closePath()
       })
@@ -289,7 +290,6 @@ const AnalyseTimeseries: React.FC = () => {
               borderRadius: '8px',
               padding: '8px',
               textAlign: 'left',
-              boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
               transform: isCursorLow ? null : 'translateY(+150%)',
             }}
           >
@@ -315,7 +315,7 @@ const AnalyseTimeseries: React.FC = () => {
   
       setTooltip(null)
     },
-    [metadataSeries, sharedChartProps.margin, theme]
+    [metadataSeries, sharedChartProps.margin, theme, metadataColors]
   )
 
   const ScalesCaptureLayer = (props: { xScale: any; yScale: any }) => {
@@ -323,7 +323,6 @@ const AnalyseTimeseries: React.FC = () => {
   
     if (xScale && yScale) {
       chartScalesRef.current = { xScale, yScale }
-      console.log('Scales captured:', chartScalesRef.current)
     }
   
     return null
