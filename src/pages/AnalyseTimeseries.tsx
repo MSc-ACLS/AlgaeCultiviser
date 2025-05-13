@@ -36,6 +36,14 @@ const AnalyseTimeseries: React.FC = () => {
     x: number
     y: number
   } | null>(null)
+  const [zoomStart, setZoomStart] = useState<number | null>(null);
+  const [zoomEnd, setZoomEnd] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleMouseLeave = () => {
+    setTooltip(null)
+    setIsDragging(false)
+  }
 
   useEffect(() => {
     if (selectedDataset) {
@@ -179,7 +187,25 @@ const AnalyseTimeseries: React.FC = () => {
 
   const theme = useTheme()
 
-  const sharedChartProps = {
+  const sharedChartProps: {
+    margin: { top: number; right: number; bottom: number; left: number };
+    enableGridX: boolean;
+    enableGridY: boolean;
+    theme: {
+      axis: {
+        ticks: { text: { fill: string } };
+        legend: { text: { fill: string } };
+      };
+    };
+    tooltip: (() => null) | (({ point }: PointTooltipProps) => React.ReactNode);
+    xScale: {
+      type: "time";
+      format: string;
+      precision: "minute";
+      min: Date | "auto";
+      max: Date | "auto";
+    };
+  } = {
     margin: { top: 20, right: 200, bottom: 40, left: 50 },
     enableGridX: false,
     enableGridY: false,
@@ -200,14 +226,14 @@ const AnalyseTimeseries: React.FC = () => {
     tooltip: tooltip
       ? () => null
       : ({ point }: PointTooltipProps) => {
-          const isCursorLow = point.y > 100
-          const originalY = (point.data as any).originalY
+          const isCursorLow = point.y > 100;
+          const originalY = (point.data as any).originalY;
 
-          const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
+          const variableIndex = selectedDataset?.data[0].indexOf(point.serieId);
           const unit =
             variableIndex !== undefined && variableIndex >= 0
               ? selectedDataset?.data[1][variableIndex]
-              : ''
+              : '';
 
           return (
             <Box
@@ -222,12 +248,23 @@ const AnalyseTimeseries: React.FC = () => {
               <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
                 {point.serieId} {unit && `[${unit}]`}
               </Typography>
-              <Typography variant="body2">Time: {new Date(point.data.x).toLocaleString()}</Typography>
+              <Typography variant="body2">
+                Time: {new Date(point.data.x).toLocaleString()}
+              </Typography>
               <Typography variant="body2">Value: {originalY?.toString()}</Typography>
             </Box>
-          )
+          );
         },
+    xScale: {
+      type: "time",
+      format: "%d.%m.%Y %H:%M",
+      precision: "minute",
+      min: "auto",
+      max: "auto",
+    },
   }
+
+  const [xScaleConfig, setXScaleConfig] = useState(sharedChartProps.xScale);
 
   const MetadataScatterplotLayer = ({ ctx, xScale, yScale }: any) => {
     if (!xScale || !yScale) {
@@ -243,7 +280,7 @@ const AnalyseTimeseries: React.FC = () => {
   
         ctx.beginPath()
         ctx.arc(x, y, 8, 0, 2 * Math.PI)
-        ctx.fillStyle = metadataColors[metadata.id] || theme.palette.text.primary // Use assigned color or fallback
+        ctx.fillStyle = metadataColors[metadata.id]
         ctx.fill()
         ctx.closePath()
       })
@@ -328,6 +365,76 @@ const AnalyseTimeseries: React.FC = () => {
     return null
   }
 
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!chartScalesRef.current) return;
+  
+    const { xScale } = chartScalesRef.current;
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect) return;
+  
+    const mouseX = event.clientX - rect.left;
+    const startDate = xScale.invert(mouseX);
+    setZoomStart(startDate.getTime());
+    setIsDragging(true);
+  };
+  
+  const handleMouseMoveZoom = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !chartScalesRef.current) return;
+  
+    const { xScale } = chartScalesRef.current;
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect) return;
+  
+    const mouseX = event.clientX - rect.left;
+    const endDate = xScale.invert(mouseX);
+    setZoomEnd(endDate.getTime());
+  };
+  
+  const handleMouseUp = () => {
+    if (!isDragging || zoomStart === null || zoomEnd === null) return;
+  
+    const newStartDate = Math.min(zoomStart, zoomEnd)
+    const newEndDate = Math.max(zoomStart, zoomEnd)
+
+    console.log(`Zooming from ${new Date(newStartDate).toLocaleString()} to ${new Date(newEndDate).toLocaleString()}`)
+  
+    setXScaleConfig({
+      ...xScaleConfig,
+      min: new Date(newStartDate),
+      max: new Date(newEndDate),
+    })
+  
+    setZoomStart(null);
+    setZoomEnd(null);
+    setIsDragging(false);
+  };
+
+  const renderZoomOverlay = () => {
+    if (!isDragging || zoomStart === null || zoomEnd === null || !chartScalesRef.current) return null;
+  
+    const { xScale } = chartScalesRef.current;
+    const rect = chartRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+  
+    const startX = xScale(new Date(Math.min(zoomStart, zoomEnd)));
+    const endX = xScale(new Date(Math.max(zoomStart, zoomEnd)));
+  
+    return (
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: startX,
+          width: endX - startX,
+          height: '100%',
+          backgroundColor: theme.palette.primary.main,
+          opacity: 0.5,
+          pointerEvents: 'none',
+        }}
+      />
+    );
+  };
+
   return (
     <Box
       sx={{
@@ -365,17 +472,20 @@ const AnalyseTimeseries: React.FC = () => {
           position: 'relative',
         }}
       >
-        <Box ref={chartRef} sx={{ height: '100%', width: '100%', position: 'relative' }} onMouseMove={(event) => handleMouseMove(event)} onMouseLeave={() => setTooltip(null)}>
+        <Box 
+          ref={chartRef}
+          sx={{ height: '100%', width: '100%', position: 'relative' }} 
+          onMouseMove={(event) => handleMouseMove(event)} 
+          onMouseLeave={() => handleMouseLeave} 
+          onMouseDown={handleMouseDown} 
+          onMouseMoveCapture={handleMouseMoveZoom} 
+          onMouseUp={handleMouseUp} 
+        >
           <ResponsiveLineCanvas
             data={mainSeries.filter((d) => visibleLines[d.id] !== false)}
             pointSize={0}
             lineWidth={1}
             xFormat="time:%d.%m.%Y %H:%M"
-            xScale={{
-              type: 'time',
-              format: '%d.%m.%Y %H:%M',
-              precision: 'minute',
-            }}
             yScale={{
               type: 'linear',
               min: 'auto',
@@ -431,7 +541,9 @@ const AnalyseTimeseries: React.FC = () => {
               'legends',
             ]}
             {...sharedChartProps}
+            xScale={xScaleConfig}
           />
+          {renderZoomOverlay()}
         </Box>
 
         {tooltip && (
