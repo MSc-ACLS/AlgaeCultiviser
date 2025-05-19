@@ -400,12 +400,24 @@ const AnalyseTimeseries: React.FC = () => {
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!chartScalesRef.current) return
 
-    const { xScale } = chartScalesRef.current
     const rect = chartRef.current?.getBoundingClientRect()
     if (!rect) return
 
-    const mouseX = event.clientX - rect.left - sharedChartProps.margin.left
-    const startDate = xScale.invert(mouseX)
+    const mouseX = event.clientX - rect.left
+    const mouseY = event.clientY - rect.top
+
+    if (
+      mouseX < sharedChartProps.margin.left ||
+      mouseX > rect.width - sharedChartProps.margin.right ||
+      mouseY < sharedChartProps.margin.top ||
+      mouseY > rect.height - sharedChartProps.margin.bottom
+    ) {
+      return
+    }
+
+    const { xScale } = chartScalesRef.current
+    const adjustedMouseX = mouseX - sharedChartProps.margin.left
+    const startDate = xScale.invert(adjustedMouseX)
     setZoomStart(startDate.getTime())
     setIsDragging(true)
   }
@@ -422,8 +434,26 @@ const AnalyseTimeseries: React.FC = () => {
     setZoomEnd(endDate.getTime())
   }
   
-  const handleMouseUp = () => {
+  const handleMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || zoomStart === null || zoomEnd === null) return
+
+    const rect = chartRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const mouseX = event.clientX - rect.left
+    const mouseY = event.clientY - rect.top
+
+    if (
+      mouseX < sharedChartProps.margin.left ||
+      mouseX > rect.width - sharedChartProps.margin.right ||
+      mouseY < sharedChartProps.margin.top ||
+      mouseY > rect.height - sharedChartProps.margin.bottom
+    ) {
+      setZoomStart(null)
+      setZoomEnd(null)
+      setIsDragging(false)
+      return
+    }
 
     const newStartDate = new Date(Math.min(zoomStart, zoomEnd))
     const newEndDate = new Date(Math.max(zoomStart, zoomEnd))
