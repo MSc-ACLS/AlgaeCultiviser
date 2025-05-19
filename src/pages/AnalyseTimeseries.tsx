@@ -9,6 +9,7 @@ import { handleDownloadChart } from '../utils/downloadChart'
 import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
 import React from 'react'
 import { schemeSet1 } from 'd3-scale-chromatic'
+import { ScaleTimeSpec } from '@nivo/scales'
 
 type MetadataPoint = {
   x: Date
@@ -36,9 +37,9 @@ const AnalyseTimeseries: React.FC = () => {
     x: number
     y: number
   } | null>(null)
-  const [zoomStart, setZoomStart] = useState<number | null>(null);
-  const [zoomEnd, setZoomEnd] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [zoomStart, setZoomStart] = useState<number | null>(null)
+  const [zoomEnd, setZoomEnd] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const handleMouseLeave = () => {
     setTooltip(null)
@@ -188,23 +189,23 @@ const AnalyseTimeseries: React.FC = () => {
   const theme = useTheme()
 
   const sharedChartProps: {
-    margin: { top: number; right: number; bottom: number; left: number };
-    enableGridX: boolean;
-    enableGridY: boolean;
+    margin: { top: number; right: number; bottom: number; left: number }
+    enableGridX: boolean
+    enableGridY: boolean
     theme: {
       axis: {
-        ticks: { text: { fill: string } };
-        legend: { text: { fill: string } };
-      };
-    };
-    tooltip: (() => null) | (({ point }: PointTooltipProps) => React.ReactNode);
+        ticks: { text: { fill: string } }
+        legend: { text: { fill: string } }
+      }
+    }
+    tooltip: (() => null) | (({ point }: PointTooltipProps) => React.ReactNode)
     xScale: {
-      type: "time";
-      format: string;
-      precision: "minute";
-      min: Date | "auto";
-      max: Date | "auto";
-    };
+      type: "time"
+      format: string
+      precision: "minute"
+      min: Date | "auto"
+      max: Date | "auto"
+    }
   } = {
     margin: { top: 20, right: 200, bottom: 40, left: 50 },
     enableGridX: false,
@@ -226,14 +227,14 @@ const AnalyseTimeseries: React.FC = () => {
     tooltip: tooltip
       ? () => null
       : ({ point }: PointTooltipProps) => {
-          const isCursorLow = point.y > 100;
-          const originalY = (point.data as any).originalY;
+          const isCursorLow = point.y > 100
+          const originalY = (point.data as any).originalY
 
-          const variableIndex = selectedDataset?.data[0].indexOf(point.serieId);
+          const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
           const unit =
             variableIndex !== undefined && variableIndex >= 0
               ? selectedDataset?.data[1][variableIndex]
-              : '';
+              : ''
 
           return (
             <Box
@@ -253,7 +254,7 @@ const AnalyseTimeseries: React.FC = () => {
               </Typography>
               <Typography variant="body2">Value: {originalY?.toString()}</Typography>
             </Box>
-          );
+          )
         },
     xScale: {
       type: "time",
@@ -264,20 +265,51 @@ const AnalyseTimeseries: React.FC = () => {
     },
   }
 
-  const [xScaleConfig, setXScaleConfig] = useState(sharedChartProps.xScale);
+  const initialXScaleConfig: ScaleTimeSpec = useMemo(() => {
+    if (!mainSeries || mainSeries.length === 0) {
+      return {
+        type: "time",
+        format: "%d.%m.%Y %H:%M",
+        precision: "minute",
+        min: undefined,
+        max: undefined,
+      }
+    }
+
+    let minDate = Infinity
+    let maxDate = -Infinity
+
+    mainSeries.forEach((series) => {
+      series.data.forEach((point) => {
+        const time = point.x.getTime()
+        if (time < minDate) minDate = time
+        if (time > maxDate) maxDate = time
+      })
+    })
+
+    return {
+      type: "time",
+      format: "%d.%m.%Y %H:%M",
+      precision: "minute",
+      min: new Date(minDate),
+      max: new Date(maxDate),
+    }
+  }, [mainSeries])
+
+  const [xScaleConfig, setXScaleConfig] = useState<ScaleTimeSpec>(initialXScaleConfig)
 
   const MetadataScatterplotLayer = ({ ctx, xScale, yScale }: any) => {
     if (!xScale || !yScale) {
       return
     }
-  
+
     ctx.save()
-  
-    metadataSeries.forEach((metadata) => {
+
+    filteredMetadata.forEach((metadata) => {
       metadata.data.forEach((point) => {
         const x = xScale(point.x)
         const y = yScale(point.y)
-  
+
         ctx.beginPath()
         ctx.arc(x, y, 8, 0, 2 * Math.PI)
         ctx.fillStyle = metadataColors[metadata.id]
@@ -285,7 +317,7 @@ const AnalyseTimeseries: React.FC = () => {
         ctx.closePath()
       })
     })
-  
+
     ctx.restore()
   }
 
@@ -366,59 +398,59 @@ const AnalyseTimeseries: React.FC = () => {
   }
 
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!chartScalesRef.current) return;
-  
-    const { xScale } = chartScalesRef.current;
-    const rect = chartRef.current?.getBoundingClientRect();
-    if (!rect) return;
-  
-    const mouseX = event.clientX - rect.left;
-    const startDate = xScale.invert(mouseX);
-    setZoomStart(startDate.getTime());
-    setIsDragging(true);
-  };
+    if (!chartScalesRef.current) return
+
+    const { xScale } = chartScalesRef.current
+    const rect = chartRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const mouseX = event.clientX - rect.left - sharedChartProps.margin.left
+    const startDate = xScale.invert(mouseX)
+    setZoomStart(startDate.getTime())
+    setIsDragging(true)
+  }
   
   const handleMouseMoveZoom = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !chartScalesRef.current) return;
-  
-    const { xScale } = chartScalesRef.current;
-    const rect = chartRef.current?.getBoundingClientRect();
-    if (!rect) return;
-  
-    const mouseX = event.clientX - rect.left;
-    const endDate = xScale.invert(mouseX);
-    setZoomEnd(endDate.getTime());
-  };
+    if (!isDragging || !chartScalesRef.current) return
+
+    const { xScale } = chartScalesRef.current
+    const rect = chartRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const mouseX = event.clientX - rect.left - sharedChartProps.margin.left
+    const endDate = xScale.invert(mouseX)
+    setZoomEnd(endDate.getTime())
+  }
   
   const handleMouseUp = () => {
-    if (!isDragging || zoomStart === null || zoomEnd === null) return;
-  
-    const newStartDate = Math.min(zoomStart, zoomEnd)
-    const newEndDate = Math.max(zoomStart, zoomEnd)
+    if (!isDragging || zoomStart === null || zoomEnd === null) return
 
-    console.log(`Zooming from ${new Date(newStartDate).toLocaleString()} to ${new Date(newEndDate).toLocaleString()}`)
-  
+    const newStartDate = new Date(Math.min(zoomStart, zoomEnd))
+    const newEndDate = new Date(Math.max(zoomStart, zoomEnd))
+
+    console.log(`Zooming from ${newStartDate.toLocaleString()} to ${newEndDate.toLocaleString()}`)
+
     setXScaleConfig({
       ...xScaleConfig,
-      min: new Date(newStartDate),
-      max: new Date(newEndDate),
+      min: newStartDate,
+      max: newEndDate,
     })
-  
-    setZoomStart(null);
-    setZoomEnd(null);
-    setIsDragging(false);
-  };
+
+    setZoomStart(null)
+    setZoomEnd(null)
+    setIsDragging(false)
+  }
 
   const renderZoomOverlay = () => {
-    if (!isDragging || zoomStart === null || zoomEnd === null || !chartScalesRef.current) return null;
-  
-    const { xScale } = chartScalesRef.current;
-    const rect = chartRef.current?.getBoundingClientRect();
-    if (!rect) return null;
-  
-    const startX = xScale(new Date(Math.min(zoomStart, zoomEnd)));
-    const endX = xScale(new Date(Math.max(zoomStart, zoomEnd)));
-  
+    if (!isDragging || zoomStart === null || zoomEnd === null || !chartScalesRef.current) return null
+
+    const { xScale } = chartScalesRef.current
+    const rect = chartRef.current?.getBoundingClientRect()
+    if (!rect) return null
+
+    const startX = xScale(new Date(Math.min(zoomStart, zoomEnd))) + sharedChartProps.margin.left
+    const endX = xScale(new Date(Math.max(zoomStart, zoomEnd))) + sharedChartProps.margin.left
+
     return (
       <Box
         sx={{
@@ -432,8 +464,42 @@ const AnalyseTimeseries: React.FC = () => {
           pointerEvents: 'none',
         }}
       />
-    );
-  };
+    )
+  }
+
+  const filteredData = useMemo(() => {
+    if (!(xScaleConfig.min instanceof Date) || !(xScaleConfig.max instanceof Date)) {
+      return mainSeries
+    }
+
+    return mainSeries.map((series) => ({
+      ...series,
+      data: series.data.filter(
+        (point) =>
+          xScaleConfig.min instanceof Date &&
+          xScaleConfig.max instanceof Date &&
+          point.x >= xScaleConfig.min &&
+          point.x <= xScaleConfig.max
+      ),
+    }))
+  }, [mainSeries, xScaleConfig])
+
+  const filteredMetadata = useMemo(() => {
+    if (!(xScaleConfig.min instanceof Date) || !(xScaleConfig.max instanceof Date)) {
+      return metadataSeries
+    }
+
+    return metadataSeries.map((series) => ({
+      ...series,
+      data: series.data.filter(
+        (point) =>
+          xScaleConfig.min instanceof Date &&
+          xScaleConfig.max instanceof Date &&
+          point.x >= xScaleConfig.min &&
+          point.x <= xScaleConfig.max
+      ),
+    }))
+  }, [metadataSeries, xScaleConfig])
 
   return (
     <Box
@@ -482,7 +548,7 @@ const AnalyseTimeseries: React.FC = () => {
           onMouseUp={handleMouseUp} 
         >
           <ResponsiveLineCanvas
-            data={mainSeries.filter((d) => visibleLines[d.id] !== false)}
+            data={filteredData.filter((d) => visibleLines[d.id] !== false)}
             pointSize={0}
             lineWidth={1}
             xFormat="time:%d.%m.%Y %H:%M"
