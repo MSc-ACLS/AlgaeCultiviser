@@ -584,8 +584,8 @@ const AnalyseTimeseries: React.FC = () => {
             xFormat="time:%d.%m.%Y %H:%M"
             yScale={{
               type: 'linear',
-              min: 'auto',
-              max: 'auto',
+              min: 0,
+              max: 1,
               stacked: false,
               reverse: false,
             }}

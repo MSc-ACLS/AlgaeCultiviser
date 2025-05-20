@@ -28,7 +28,7 @@ export const loadInitialData = createAsyncThunk('data/loadInitialData', async ()
     return []
   }
 
-  const response = await fetch('/data/dataagro24_run1.csv')
+  const response = await fetch(`${import.meta.env.BASE_URL}data/dataagro24_run1.csv`)
   const fileContent = await response.text()
   let parsedData: any[] = []
   Papa.parse(fileContent, {
