@@ -24,7 +24,7 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
+      <Router basename='/AlgaeCultiviser'>
         <CssBaseline />
         <AppBar elevation={3} position='sticky'>
           <Toolbar>
