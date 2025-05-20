@@ -129,10 +129,11 @@ const DataPage: React.FC = () => {
   }, [selectionModel, dispatch])
 
   const getColumnStats = (columnData: any[]) => {
-    const count = columnData.length
-    const mean = columnData.reduce((acc, val) => acc + val, 0) / count
-    const min = Math.min(...columnData)
-    const max = Math.max(...columnData)
+    const numericData = columnData.map((val) => parseFloat(val))
+    const count = numericData.length
+    const mean = numericData.reduce((acc, val) => acc + val, 0) / count
+    const min = Math.min(...numericData)
+    const max = Math.max(...numericData)
     return { count, mean, min, max }
   }
 
