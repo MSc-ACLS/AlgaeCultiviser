@@ -24,6 +24,10 @@ const initialState: DataState = {
 }
 
 export const loadInitialData = createAsyncThunk('data/loadInitialData', async () => {
+  if (window.location.hostname !== 'localhost') {
+    return []
+  }
+
   const response = await fetch('/data/dataagro24_run1.csv')
   const fileContent = await response.text()
   let parsedData: any[] = []
