@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Algae cell circle -->
+  <circle cx="22" cy="32" r="20" fill="#2E7D32" stroke="#1B5E20" stroke-width="2"></circle>
+
+  <!-- Algae organelles (bubbles inside) - shifted left -->
+  <circle cx="16" cy="26" r="2.4" fill="#4CAF50"></circle>
+  <circle cx="24" cy="36" r="2.2" fill="#66BB6A"></circle>
+  <circle cx="18" cy="40" r="1.8" fill="#A5D6A7"></circle>
+
+  <!-- Data bars (secondary color) - overlapping edge -->
+  <rect x="34" y="30" width="6" height="16" fill="#C0E218"></rect>
+  <rect x="42" y="24" width="6" height="22" fill="#C0E218"></rect>
+  <rect x="50" y="18" width="6" height="28" fill="#C0E218"></rect>
+</svg>
