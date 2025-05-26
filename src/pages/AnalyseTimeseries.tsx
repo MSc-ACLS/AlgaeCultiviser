@@ -1,4 +1,4 @@
-import { Box, Typography, FormControlLabel, Checkbox, IconButton, Tooltip } from '@mui/material'
+import { Box, Typography, Checkbox, IconButton, Tooltip } from '@mui/material'
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '../store'
 import { PointTooltipProps, ResponsiveLineCanvas } from '@nivo/line'
@@ -10,6 +10,12 @@ import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflin
 import React from 'react'
 import { schemeSet1 } from 'd3-scale-chromatic'
 import { ScaleTimeSpec } from '@nivo/scales'
+import OutlinedInput from '@mui/material/OutlinedInput'
+import InputLabel from '@mui/material/InputLabel'
+import MenuItem from '@mui/material/MenuItem'
+import FormControl from '@mui/material/FormControl'
+import ListItemText from '@mui/material/ListItemText'
+import Select, { SelectChangeEvent } from '@mui/material/Select'
 
 type MetadataPoint = {
   x: Date
@@ -20,6 +26,17 @@ type MetadataPoint = {
 type MetadataSeries = {
   id: string
   data: MetadataPoint[]
+}
+
+const ITEM_HEIGHT = 48
+const ITEM_PADDING_TOP = 8
+const MenuProps = {
+  PaperProps: {
+    style: {
+      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+      width: 250,
+    },
+  },
 }
 
 const AnalyseTimeseries: React.FC = () => {
@@ -56,6 +73,9 @@ const AnalyseTimeseries: React.FC = () => {
         {}
       )
       setVisibleLines(initialVisibleLines)
+
+      // Initialize selectedVariables with all variables
+      setSelectedVariables(Object.keys(initialVisibleLines))
     }
   }, [selectedDataset])
 
@@ -531,6 +551,29 @@ const AnalyseTimeseries: React.FC = () => {
     }))
   }, [metadataSeries, xScaleConfig])
 
+  const [selectedVariables, setSelectedVariables] = useState<string[]>(
+    Object.keys(visibleLines).filter((key) => visibleLines[key] !== false)
+  )
+
+  const handleVariableChange = (event: SelectChangeEvent<typeof selectedVariables>) => {
+    const {
+      target: { value },
+    } = event
+
+    const newSelectedVariables = typeof value === 'string' ? value.split(',') : value
+
+    setSelectedVariables(newSelectedVariables)
+
+    // Update visibleLines state based on the selected variables
+    setVisibleLines((prevState) => {
+      const updatedVisibleLines = { ...prevState }
+      Object.keys(updatedVisibleLines).forEach((key) => {
+        updatedVisibleLines[key] = newSelectedVariables.includes(key)
+      })
+      return updatedVisibleLines
+    })
+  }
+
   return (
     <Box
       sx={{
@@ -541,24 +584,26 @@ const AnalyseTimeseries: React.FC = () => {
     >
       <Typography variant='h5' sx={{ mb: 2 }}>Time Series</Typography>
 
-      <Box sx={{ display: 'flex', flexDirection: 'row', mb: 2, flexWrap: 'wrap' }}>
-        {selectedDataset &&
-          selectedDataset.data[0].slice(1).map((variable: string) => (
-            <FormControlLabel
-              key={variable}
-              control={
-                <Checkbox
-                  checked={visibleLines[variable] !== false}
-                  onChange={() => handleCheckboxChange(variable)}
-                  sx={{ transform: 'scale(0.8)' }}
-                  color='secondary'
-                />
-              }
-              label={variable}
-              sx={{ fontSize: '0.8rem' }} 
-            />
+      <FormControl sx={{ mb: 2, width: 300 }}>
+        <InputLabel id="variable-select-label">Variables</InputLabel>
+        <Select
+          labelId="variable-select-label"
+          id="variable-select"
+          multiple
+          value={selectedVariables}
+          onChange={handleVariableChange}
+          input={<OutlinedInput label="Variables" />}
+          renderValue={(selected) => selected.join(', ')}
+          MenuProps={MenuProps}
+        >
+          {selectedDataset?.data[0].slice(1).map((variable: string) => (
+            <MenuItem key={variable} value={variable}>
+              <Checkbox checked={selectedVariables.includes(variable)} />
+              <ListItemText primary={variable} />
+            </MenuItem>
           ))}
-      </Box>
+        </Select>
+      </FormControl>
 
       <Box
         sx={{
@@ -568,14 +613,14 @@ const AnalyseTimeseries: React.FC = () => {
           position: 'relative',
         }}
       >
-        <Box 
+        <Box
           ref={chartRef}
-          sx={{ height: '100%', width: '100%', position: 'relative' }} 
-          onMouseMove={(event) => handleMouseMove(event)} 
-          onMouseLeave={() => handleMouseLeave} 
-          onMouseDown={handleMouseDown} 
-          onMouseMoveCapture={handleMouseMoveZoom} 
-          onMouseUp={handleMouseUp} 
+          sx={{ height: '100%', width: '100%', position: 'relative' }}
+          onMouseMove={(event) => handleMouseMove(event)}
+          onMouseLeave={() => handleMouseLeave()}
+          onMouseDown={handleMouseDown}
+          onMouseMoveCapture={handleMouseMoveZoom}
+          onMouseUp={handleMouseUp}
         >
           <ResponsiveLineCanvas
             data={filteredData.filter((d) => visibleLines[d.id] !== false)}
