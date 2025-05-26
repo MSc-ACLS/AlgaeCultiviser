@@ -16,6 +16,11 @@ import MenuItem from '@mui/material/MenuItem'
 import FormControl from '@mui/material/FormControl'
 import ListItemText from '@mui/material/ListItemText'
 import Select, { SelectChangeEvent } from '@mui/material/Select'
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import Button from '@mui/material/Button'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
+import TextField from '@mui/material/TextField'
 
 type MetadataPoint = {
   x: Date
@@ -317,6 +322,8 @@ const AnalyseTimeseries: React.FC = () => {
   }, [mainSeries])
 
   const [xScaleConfig, setXScaleConfig] = useState<ScaleTimeSpec>(initialXScaleConfig)
+  const [fromDate, setFromDate] = useState<Date | null>(xScaleConfig.min as Date | null)
+  const [toDate, setToDate] = useState<Date | null>(xScaleConfig.max as Date | null)
 
   const MetadataScatterplotLayer = ({ ctx, xScale, yScale }: any) => {
     if (!xScale || !yScale) {
@@ -478,13 +485,14 @@ const AnalyseTimeseries: React.FC = () => {
     const newStartDate = new Date(Math.min(zoomStart, zoomEnd))
     const newEndDate = new Date(Math.max(zoomStart, zoomEnd))
 
-    console.log(`Zooming from ${newStartDate.toLocaleString()} to ${newEndDate.toLocaleString()}`)
-
     setXScaleConfig({
       ...xScaleConfig,
       min: newStartDate,
       max: newEndDate,
     })
+
+    setFromDate(newStartDate)
+    setToDate(newEndDate)
 
     setZoomStart(null)
     setZoomEnd(null)
@@ -574,6 +582,32 @@ const AnalyseTimeseries: React.FC = () => {
     })
   }
 
+  const handleFromDateChange = (date: Date | null) => {
+    if (date && toDate && date < toDate) {
+      setFromDate(date)
+      setXScaleConfig((prev) => ({
+        ...prev,
+        min: date,
+      }))
+    }
+  }
+
+  const handleToDateChange = (date: Date | null) => {
+    if (date && fromDate && date > fromDate) {
+      setToDate(date)
+      setXScaleConfig((prev) => ({
+        ...prev,
+        max: date,
+      }))
+    }
+  }
+
+  const handleResetZoom = () => {
+    setFromDate(initialXScaleConfig.min as Date)
+    setToDate(initialXScaleConfig.max as Date)
+    setXScaleConfig(initialXScaleConfig)
+  }
+
   return (
     <Box
       sx={{
@@ -584,26 +618,62 @@ const AnalyseTimeseries: React.FC = () => {
     >
       <Typography variant='h5' sx={{ mb: 2 }}>Time Series</Typography>
 
-      <FormControl sx={{ mb: 2, width: 300 }}>
-        <InputLabel id="variable-select-label">Variables</InputLabel>
-        <Select
-          labelId="variable-select-label"
-          id="variable-select"
-          multiple
-          value={selectedVariables}
-          onChange={handleVariableChange}
-          input={<OutlinedInput label="Variables" />}
-          renderValue={(selected) => selected.join(', ')}
-          MenuProps={MenuProps}
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <FormControl sx={{ flex: 1 }}>
+          <InputLabel id="variable-select-label">Variables</InputLabel>
+          <Select
+            labelId="variable-select-label"
+            id="variable-select"
+            multiple
+            value={selectedVariables}
+            onChange={handleVariableChange}
+            input={<OutlinedInput label="Variables" />}
+            renderValue={(selected) => selected.join(', ')}
+            MenuProps={MenuProps}
+          >
+            {selectedDataset?.data[0].slice(1).map((variable: string) => (
+              <MenuItem key={variable} value={variable}>
+                <Checkbox checked={selectedVariables.includes(variable)} />
+                <ListItemText primary={variable} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <DatePicker
+          label="From"
+          value={fromDate}
+          onChange={handleFromDateChange}
+          slotProps={{
+            textField: {
+              fullWidth: true,
+              variant: 'outlined',
+              sx: { flex: 1 }, // Take full width
+            },
+          }}
+        />
+
+        <DatePicker
+          label="To"
+          value={toDate}
+          onChange={handleToDateChange}
+          slotProps={{
+            textField: {
+              fullWidth: true,
+              variant: 'outlined',
+              sx: { flex: 1 }, // Take full width
+            },
+          }}
+        />
+
+        <Button
+          variant='contained'
+          onClick={handleResetZoom}
+          //sx={{ flex: 1 }} // Take full width
         >
-          {selectedDataset?.data[0].slice(1).map((variable: string) => (
-            <MenuItem key={variable} value={variable}>
-              <Checkbox checked={selectedVariables.includes(variable)} />
-              <ListItemText primary={variable} />
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+          Reset Zoom
+        </Button>
+      </Box>
 
       <Box
         sx={{
@@ -721,4 +791,12 @@ const AnalyseTimeseries: React.FC = () => {
   )
 }
 
-export default AnalyseTimeseries
+const App: React.FC = () => {
+  return (
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <AnalyseTimeseries />
+    </LocalizationProvider>
+  )
+}
+
+export default App
