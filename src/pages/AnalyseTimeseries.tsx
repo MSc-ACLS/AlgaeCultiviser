@@ -4,6 +4,7 @@ import { RootState } from '../store'
 import { PointTooltipProps, ResponsiveLineCanvas } from '@nivo/line'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { parse, isValid } from 'date-fns'
+import { de } from 'date-fns/locale'
 import { useTheme } from '@mui/material/styles'
 import { handleDownloadChart } from '../utils/downloadChart'
 import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
@@ -16,11 +17,10 @@ import MenuItem from '@mui/material/MenuItem'
 import FormControl from '@mui/material/FormControl'
 import ListItemText from '@mui/material/ListItemText'
 import Select, { SelectChangeEvent } from '@mui/material/Select'
-import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import Button from '@mui/material/Button'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
-import TextField from '@mui/material/TextField'
 
 type MetadataPoint = {
   x: Date
@@ -572,7 +572,6 @@ const AnalyseTimeseries: React.FC = () => {
 
     setSelectedVariables(newSelectedVariables)
 
-    // Update visibleLines state based on the selected variables
     setVisibleLines((prevState) => {
       const updatedVisibleLines = { ...prevState }
       Object.keys(updatedVisibleLines).forEach((key) => {
@@ -618,7 +617,7 @@ const AnalyseTimeseries: React.FC = () => {
     >
       <Typography variant='h5' sx={{ mb: 2 }}>Time Series</Typography>
 
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
         <FormControl sx={{ flex: 1 }}>
           <InputLabel id="variable-select-label">Variables</InputLabel>
           <Select
@@ -640,7 +639,7 @@ const AnalyseTimeseries: React.FC = () => {
           </Select>
         </FormControl>
 
-        <DatePicker
+        <DateTimePicker
           label="From"
           value={fromDate}
           onChange={handleFromDateChange}
@@ -648,12 +647,12 @@ const AnalyseTimeseries: React.FC = () => {
             textField: {
               fullWidth: true,
               variant: 'outlined',
-              sx: { flex: 1 }, // Take full width
+              sx: { flex: 1 },
             },
           }}
         />
 
-        <DatePicker
+        <DateTimePicker
           label="To"
           value={toDate}
           onChange={handleToDateChange}
@@ -661,18 +660,20 @@ const AnalyseTimeseries: React.FC = () => {
             textField: {
               fullWidth: true,
               variant: 'outlined',
-              sx: { flex: 1 }, // Take full width
+              sx: { flex: 1 },
             },
           }}
         />
 
-        <Button
-          variant='contained'
+        <Box>
+          <Button
+          variant="contained"
           onClick={handleResetZoom}
-          //sx={{ flex: 1 }} // Take full width
+          
         >
           Reset Zoom
-        </Button>
+          </Button>
+          </Box>
       </Box>
 
       <Box
@@ -793,8 +794,8 @@ const AnalyseTimeseries: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <AnalyseTimeseries />
+<LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={de}>
+<AnalyseTimeseries />
     </LocalizationProvider>
   )
 }
