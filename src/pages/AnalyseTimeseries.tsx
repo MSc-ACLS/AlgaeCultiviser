@@ -25,6 +25,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 type MetadataPoint = {
   x: Date
   y: number
+  originalY: number
   serieId: string
 }
 
@@ -171,9 +172,16 @@ const AnalyseTimeseries: React.FC = () => {
           const y = row[index + 1]
 
           const isNumerical = !isNaN(parseFloat(y)) && isFinite(y)
+          const isISODate = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(x)
 
-          let parsedDate = parse(x, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
-          if (!isValid(parsedDate) || isNaN(parsedDate.getTime()) || !isNumerical) {
+          let parsedDate
+          if (isISODate) {
+            parsedDate = new Date(x)
+          } else {
+            const normalizedDate = x.trim().replace(/(\.\d{1,2})$/, (match: string) => match.padEnd(4, '0'))
+            parsedDate = parse(normalizedDate, 'dd.MM.yyyy HH:mm:ss.SSS', new Date())
+          }
+          if (!isValid(parsedDate) || !isNumerical) {
             console.warn(`Invalid metadata point skipped: raw=${x}, parsed=${parsedDate}, y=${y}`)
             return null
           }
@@ -369,9 +377,11 @@ const AnalyseTimeseries: React.FC = () => {
           const x = xScale(point.x)
           const y = yScale(point.y)
           const distance = Math.sqrt((x - mouseX) ** 2 + (y - mouseY) ** 2)
+
+          // TODO: Add unit
   
           if (distance < 20 && distance < minDistance) {
-            closestPoint = { x: point.x, y: point.y, serieId: metadata.id }
+            closestPoint = { x: point.x, y: point.y, originalY: point.originalY , serieId: metadata.id }
             minDistance = distance
           }
         })
@@ -379,6 +389,7 @@ const AnalyseTimeseries: React.FC = () => {
   
       if (closestPoint) {
         const isCursorLow = mouseY > 100
+
         const tooltipContent = (
           <Box
             sx={{
@@ -396,7 +407,7 @@ const AnalyseTimeseries: React.FC = () => {
               Time: {(closestPoint as MetadataPoint).x.toLocaleString()}
             </Typography>
             <Typography variant="body2">
-              Value: {(closestPoint as MetadataPoint).y.toPrecision(3)}
+              Value: {(closestPoint as MetadataPoint).originalY.toPrecision(3)}
             </Typography>
           </Box>
         )
