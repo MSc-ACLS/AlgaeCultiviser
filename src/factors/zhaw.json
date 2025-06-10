@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Ammonium Sulfate",
+    "unit": "kg",
+    "description": "Ammonium sulfate {RER}| market for ammonium sulfate | Cut-off, U",
+    "kco2eq": 0.931
+  },
+  {
+    "name": "CO2",
+    "unit": "kg",
+    "description": "Carbon dioxide, liquid {RER}| market for carbon dioxide, liquid | Cut-off, U",
+    "kco2eq": 0.736
+  },
+  {
+    "name": "Netz-Strom",
+    "unit": "kWh",
+    "description": "electricity, low voltage, at grid/kWh/CH U",
+    "kco2eq": 0.125
+  },
+  {
+    "name": "Greenhouse",
+    "unit": "m2a (Quadratmeter*Jahr)",
+    "description": "Greenhouse, glass walls and roof {GLO}| market for greenhouse, glass walls and roof | Cut-off, U",
+    "kco2eq": 4.735
+  },
+  {
+    "name": "Steel",
+    "unit": "kg",
+    "description": "Steel, chromium steel 18/8 {GLO}| market for steel, chromium steel 18/8 | Cut-off, U",
+    "kco2eq": 4.953
+  },
+  {
+    "name": "Glass",
+    "unit": "kg",
+    "description": "Flat glass, uncoated {RER}| market for flat glass, uncoated | Cut-off, U",
+    "kco2eq": 0.983
+  },
+  {
+    "name": "OTP Reactor",
+    "unit": "Reaktor (1 Stück)",
+    "description": "Open thin-layer photobioreactor",
+    "kco2eq": 1589.334
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Netz-Strom",
+    "unit": "kWh",
+    "description": "electricity, low voltage, at grid/kWh/CH U",
+    "kco2eq": 0.125
+  },
+  {
+    "name": "CO2",
+    "unit": "kg",
+    "description": "Carbon dioxide, liquid {RER}| market for carbon dioxide, liquid | Cut-off, U",
+    "kco2eq": 0.736
+  },
+  {
+    "name": "Ammonium Sulfate",
+    "unit": "kg",
+    "description": "Ammonium sulfate {RER}| market for ammonium sulfate | Cut-off, U",
+    "kco2eq": 0.931
+  },
+  {
+    "name": "LEDs (production)",
+    "unit": "kg",
+    "description": "Light emitting diode {GLO}| light emitting diode production | Cut-off, U",
+    "kco2eq": 249.148
+  },
+  {
+    "name": "Sodium Hypochlorite",
+    "unit": "kg",
+    "description": "Sodium hypochlorite, without water, in 15% solution state {RER}| market for sodium hypochlorite, without water, in 15% solution state | Cut-off, U",
+    "kco2eq": 1.622
+  },
+  {
+    "name": "CTP Reactor",
+    "unit": "Reaktor (1 Stück)",
+    "description": "Closed tubular photobioreactor",
+    "kco2eq": 1711.495
+  }
+]

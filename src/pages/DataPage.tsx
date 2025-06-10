@@ -1,7 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState, AppDispatch } from '../store'
 import { addDataset, removeDataset, setSelectedDatasetId } from '../features/dataSlice'
-import { Button, Typography, Box, Tooltip, Checkbox, Alert, Snackbar } from '@mui/material'
+import { Button, Typography, Box, Tooltip, Checkbox, Alert, Snackbar, Chip } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -49,7 +49,7 @@ const DataPage: React.FC = () => {
       width: 250,
       renderCell: (params) =>
         !params.row.isMetadata && (
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
             <Button
               variant='contained'
               size='small'
@@ -76,12 +76,26 @@ const DataPage: React.FC = () => {
         ),
     },
     {
+      field: 'type',
+      headerName: 'Type',
+      width: 150,
+      renderCell: (params) =>
+        !params.row.isMetadata && (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
+            <Chip
+              label={!params.row.isMetadata ? params.row.type : null}
+              size='small'
+            />
+          </Box>
+        ),
+    },
+    {
       field: 'compare',
       headerName: 'Compare',
       width: 150,
       renderCell: (params) =>
         !params.row.isMetadata && (
-          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%'}}>
             <Checkbox
               color='secondary'
               checked={compareSelection.includes(params.row.id)}
@@ -96,6 +110,7 @@ const DataPage: React.FC = () => {
     const mainRow = {
       id: dataset.id,
       filename: dataset.filename,
+      type: dataset.type,
       columns: dataset.data[0]?.length || 0,
       rows: dataset.data.length,
       timeSeries: 'link',
@@ -252,6 +267,8 @@ const DataPage: React.FC = () => {
             try {
               const data = parseDataset(rawData, 'dd.MM.yyyy HH:mm:ss.SSS')
 
+              const type = file.name.includes('agro') ? 'agroscope' : 'zhaw'
+
               const isMetaFile = file.name.includes('_meta.csv')
               if (isMetaFile) {
                 const mainFileName = file.name.replace('_meta.csv', '.csv')
@@ -272,7 +289,7 @@ const DataPage: React.FC = () => {
               } else {
                 const nextId = Math.max(...datasets.map((d) => d.id), 0) + 1
 
-                dispatch(addDataset({ id: nextId, data, filename: file.name }))
+                dispatch(addDataset({ id: nextId, data, type: type, filename: file.name }))
               }
             } catch (error) {
               console.error('Error parsing dataset:', error)

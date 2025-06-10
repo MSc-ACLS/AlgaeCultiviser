@@ -5,6 +5,7 @@ import { parseDataset } from '../utils/parseDataset'
 export interface Dataset {
   id: number
   filename: string
+  type: 'zhaw' | 'agroscope'
   data: any[]
   metadata?: {
     id: number
@@ -43,7 +44,8 @@ export const loadInitialData = createAsyncThunk('data/loadInitialData', async ()
   return [{
     id: 0,
     data: parsedDataset,
-    filename: 'dataagro24_run1.csv'
+    filename: 'dataagro24_run1.csv',
+    type: 'agroscope' as 'agroscope'
   }]
 })
 
