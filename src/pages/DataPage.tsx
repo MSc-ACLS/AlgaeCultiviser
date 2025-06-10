@@ -84,6 +84,7 @@ const DataPage: React.FC = () => {
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
             <Chip
               label={!params.row.isMetadata ? params.row.type : null}
+              color='secondary'
               size='small'
             />
           </Box>

@@ -39,7 +39,7 @@ export const loadInitialData = createAsyncThunk('data/loadInitialData', async ()
     header: false,
   })
 
-  const parsedDataset = parseDataset(parsedData, 'dd.MM.yyyy HH:mm:ss.SSS')
+  const parsedDataset = parseDataset(parsedData, 'agroscope', 'dd.MM.yyyy HH:mm:ss.SSS')
 
   return [{
     id: 0,

@@ -726,6 +726,7 @@ const AnalyseTimeseries: React.FC = () => {
               tickValues: 5,
             }}
             colors={{ scheme: 'category10' }}
+            curve='basis'
             legends={[
               {
                 anchor: 'right',
