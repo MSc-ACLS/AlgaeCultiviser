@@ -1,0 +1,19 @@
+{
+  "system": "Closed tubular PBR",
+  "reactor_volume_l": 235,
+  "areal_productivity_rate_g_m2_d": 32,
+  "productive_area_m2": 2.84,
+  "operation_time_d_per_a": 280,
+  "annual_production_algae_biomass_kg": 25.4,
+  "protein_content_percent": 40,
+  "annual_production_protein_kg": 10.2,
+  "annual_CO2_input_kg": 220,
+  "annual_electricity_input_kWh": 7234,
+  "nutrients": {
+    "N_total_kg_per_a": 1.2,
+    "N_in_biomass_kg": 1.2,
+    "N_in_biomass_percent": 100,
+    "N_losses_to_air_percent": null,
+    "N_losses_to_water_percent": null
+  }
+}

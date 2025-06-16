@@ -1,0 +1,19 @@
+{
+  "system": "Open thin-layer PBR",
+  "reactor_volume_l": 200,
+  "areal_productivity_rate_g_m2_d": 10.4,
+  "productive_area_m2": 18,
+  "operation_time_d_per_a": 240,
+  "annual_production_algae_biomass_kg": 44.8,
+  "protein_content_percent": 40,
+  "annual_production_protein_kg": 17.9,
+  "annual_CO2_input_kg": 300,
+  "annual_electricity_input_kWh": 1485,
+  "nutrients": {
+    "N_total_kg_per_a": 66.4,
+    "N_in_biomass_kg": 52.5,
+    "N_in_biomass_percent": 79,
+    "N_losses_to_air_percent": 16,
+    "N_losses_to_water_percent": 5
+  }
+}

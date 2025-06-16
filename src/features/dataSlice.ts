@@ -2,10 +2,11 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit"
 import Papa from 'papaparse'
 import { parseDataset } from '../utils/parseDataset'
 
+export type DatasetType = 'zhaw' | 'agroscope'
 export interface Dataset {
   id: number
   filename: string
-  type: 'zhaw' | 'agroscope'
+  type: DatasetType
   data: any[]
   metadata?: {
     id: number

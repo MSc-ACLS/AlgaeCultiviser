@@ -12,7 +12,7 @@
     "kco2eq": 0.736
   },
   {
-    "name": "Netz-Strom",
+    "name": "Electricity",
     "unit": "kWh",
     "description": "electricity, low voltage, at grid/kWh/CH U",
     "kco2eq": 0.125

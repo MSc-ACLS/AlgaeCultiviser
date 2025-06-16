@@ -21,6 +21,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
 import Button from '@mui/material/Button'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
+import SustainabilityBox from './SustainabilityBox'
 
 type MetadataPoint = {
   x: Date
@@ -618,6 +619,10 @@ const AnalyseTimeseries: React.FC = () => {
     setXScaleConfig(initialXScaleConfig)
   }
 
+const sustainabilityMetrics = {
+    eletricity: 1.23,
+  }
+
   return (
     <Box
       sx={{
@@ -695,6 +700,7 @@ const AnalyseTimeseries: React.FC = () => {
           position: 'relative',
         }}
       >
+        <SustainabilityBox type={selectedDataset?.type || 'agroscope'} />
         <Box
           ref={chartRef}
           sx={{ height: '100%', width: '100%', position: 'relative' }}
@@ -729,7 +735,7 @@ const AnalyseTimeseries: React.FC = () => {
             curve='basis'
             legends={[
               {
-                anchor: 'right',
+                anchor: 'bottom-right',
                 direction: 'column',
                 justify: false,
                 translateX: 120,
