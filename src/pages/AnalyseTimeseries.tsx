@@ -241,7 +241,7 @@ const AnalyseTimeseries: React.FC = () => {
       max: Date | "auto"
     }
   } = {
-    margin: { top: 20, right: 200, bottom: 40, left: 50 },
+    margin: { top: 20, right: 200, bottom: 40, left: 0 },
     enableGridX: false,
     enableGridY: false,
     theme: {
@@ -262,6 +262,7 @@ const AnalyseTimeseries: React.FC = () => {
       ? () => null
       : ({ point }: PointTooltipProps) => {
           const isCursorLow = point.y > 100
+          const isCursorLeft = point.x < 100
           const originalY = (point.data as any).originalY
 
           const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
@@ -277,7 +278,7 @@ const AnalyseTimeseries: React.FC = () => {
                 borderRadius: '8px',
                 padding: '8px',
                 textAlign: 'left',
-                transform: isCursorLow ? null : 'translateY(+150%)',
+                transform: isCursorLow ? isCursorLeft ? 'translateX(+50%)' : null : isCursorLeft ? 'translate(+50%,+150%)' : 'translateY(+150%)',
               }}
             >
               <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
@@ -333,6 +334,11 @@ const AnalyseTimeseries: React.FC = () => {
   const [xScaleConfig, setXScaleConfig] = useState<ScaleTimeSpec>(initialXScaleConfig)
   const [fromDate, setFromDate] = useState<Date | null>(xScaleConfig.min as Date | null)
   const [toDate, setToDate] = useState<Date | null>(xScaleConfig.max as Date | null)
+
+  const durationDays =
+  fromDate && toDate
+    ? (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
+    : 0
 
   const MetadataScatterplotLayer = ({ ctx, xScale, yScale }: any) => {
     if (!xScale || !yScale) {
@@ -390,6 +396,7 @@ const AnalyseTimeseries: React.FC = () => {
   
       if (closestPoint) {
         const isCursorLow = mouseY > 100
+        const isCursorLeft = mouseX < 100
 
         const tooltipContent = (
           <Box
@@ -398,7 +405,7 @@ const AnalyseTimeseries: React.FC = () => {
               borderRadius: '8px',
               padding: '8px',
               textAlign: 'left',
-              transform: isCursorLow ? null : 'translateY(+150%)',
+              transform: isCursorLow ? isCursorLeft ? 'translateX(+50%)' : null : isCursorLeft ? 'translate(+50%,+150%)' : 'translateY(+150%)',
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
@@ -683,6 +690,7 @@ const sustainabilityMetrics = {
 
         <Box>
           <Button
+          color='secondary'
           variant="contained"
           onClick={handleResetZoom}
           
@@ -700,7 +708,7 @@ const sustainabilityMetrics = {
           position: 'relative',
         }}
       >
-        <SustainabilityBox type={selectedDataset?.type || 'agroscope'} />
+        <SustainabilityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} />
         <Box
           ref={chartRef}
           sx={{ height: '100%', width: '100%', position: 'relative' }}
@@ -722,6 +730,7 @@ const sustainabilityMetrics = {
               stacked: false,
               reverse: false,
             }}
+            axisLeft={null}
             axisBottom={{
               tickSize: 2,
               tickPadding: 5,
