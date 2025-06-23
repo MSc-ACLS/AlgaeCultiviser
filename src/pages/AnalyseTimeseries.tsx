@@ -64,6 +64,8 @@ const AnalyseTimeseries: React.FC = () => {
   const [zoomStart, setZoomStart] = useState<number | null>(null)
   const [zoomEnd, setZoomEnd] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [downsample, setDownsample] = useState(false)
+  const [downsampleWindow, setDownsampleWindow] = useState<number>(1) // 1 means no downsampling
 
   const handleMouseLeave = () => {
     setTooltip(null)
@@ -210,15 +212,6 @@ const AnalyseTimeseries: React.FC = () => {
       return acc
     }, {} as { [key: string]: string })
   }, [metadataSeries])
-
-  const data = useMemo(() => {
-    const styledSeries = [
-      ...mainSeries.map(s => ({ ...s, pointSize: 0, lineWidth: 1 })),
-      ...metadataSeries.map(s => ({ ...s, pointSize: 8, lineWidth: 0 }))
-    ]
-    
-    return styledSeries
-  }, [mainSeries, metadataSeries])
 
   const theme = useTheme()
 
@@ -549,7 +542,7 @@ const AnalyseTimeseries: React.FC = () => {
       return mainSeries
     }
 
-    return mainSeries.map((series) => ({
+    let filtered = mainSeries.map((series) => ({
       ...series,
       data: series.data.filter(
         (point) =>
@@ -559,7 +552,13 @@ const AnalyseTimeseries: React.FC = () => {
           point.x <= xScaleConfig.max
       ),
     }))
-  }, [mainSeries, xScaleConfig])
+
+    if (downsampleWindow > 1) {
+      filtered = filtered.map(s => downsampleAverage(s, downsampleWindow))
+    }
+
+    return filtered
+  }, [mainSeries, xScaleConfig, downsampleWindow])
 
   const filteredMetadata = useMemo(() => {
     if (!(xScaleConfig.min instanceof Date) || !(xScaleConfig.max instanceof Date)) {
@@ -626,10 +625,6 @@ const AnalyseTimeseries: React.FC = () => {
     setXScaleConfig(initialXScaleConfig)
   }
 
-const sustainabilityMetrics = {
-    eletricity: 1.23,
-  }
-
   return (
     <Box
       sx={{
@@ -659,6 +654,23 @@ const sustainabilityMetrics = {
                 <ListItemText primary={variable} />
               </MenuItem>
             ))}
+          </Select>
+        </FormControl>
+
+        <FormControl sx={{ minWidth: 120, alignSelf: 'stretch' }}>
+          <InputLabel id="downsample-select-label">Downsampling</InputLabel>
+          <Select
+            labelId="downsample-select-label"
+            id="downsample-select"
+            value={downsampleWindow}
+            label="Downsample"
+            onChange={e => setDownsampleWindow(Number(e.target.value))}
+          >
+            <MenuItem value={1}>None</MenuItem>
+            <MenuItem value={5}>5</MenuItem>
+            <MenuItem value={10}>10</MenuItem>
+            <MenuItem value={20}>20</MenuItem>
+            <MenuItem value={50}>50</MenuItem>
           </Select>
         </FormControl>
 
@@ -828,3 +840,24 @@ const App: React.FC = () => {
 }
 
 export default App
+
+function downsampleAverage<T extends { data: { x: Date; y: number; originalY: number; serieId: string }[] }>(series: T, windowSize = 10): T {
+  const { data, ...rest } = series
+  if (data.length <= windowSize) return series
+
+  const downsampled: typeof data = []
+  for (let i = 0; i < data.length; i += windowSize) {
+    const window = data.slice(i, i + windowSize)
+    if (window.length === 0) continue
+    // Average y and originalY, use the x of the middle point
+    const avgY = window.reduce((sum, p) => sum + p.y, 0) / window.length
+    const avgOriginalY = window.reduce((sum, p) => sum + p.originalY, 0) / window.length
+    const mid = Math.floor(window.length / 2)
+    downsampled.push({
+      ...window[mid],
+      y: avgY,
+      originalY: avgOriginalY,
+    })
+  }
+  return { ...rest, data: downsampled } as T
+}
