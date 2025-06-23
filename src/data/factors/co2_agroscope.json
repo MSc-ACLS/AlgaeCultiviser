@@ -18,7 +18,7 @@
     "kco2eq": 0.931
   },
   {
-    "name": "LEDs (production)",
+    "name": "LEDs",
     "unit": "kg",
     "description": "Light emitting diode {GLO}| light emitting diode production | Cut-off, U",
     "kco2eq": 249.148

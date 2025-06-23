@@ -37,7 +37,7 @@ export const parseDataset = (
   // AGROSCOPE CO2 LOGIC
   if (type === 'agroscope') {
     // Add 'co2' to header and units
-    headerRow = [...headerRow, 'co2']
+    headerRow = [...headerRow, 'CO2']
     unitsRow = [...unitsRow, 'L']
 
     const phIndex = headerRow.findIndex(
