@@ -28,6 +28,7 @@ type MetadataPoint = {
   y: number
   originalY: number
   serieId: string
+  unit: string
 }
 
 type MetadataSeries = {
@@ -200,7 +201,23 @@ const AnalyseTimeseries: React.FC = () => {
       rawData.filter((variableData: { data: string | any[] }) => variableData.data.length > 0)
     )
 
-    const metadataSeries: MetadataSeries[] = normalised.filter((d) => d.id.startsWith('Metadata:'))
+    const metadataSeries: MetadataSeries[] = normalised
+      .filter((d) => d.id.startsWith('Metadata:'))
+      .map((d) => {
+        let unit = ''
+        if (selectedDataset?.metadata && typeof d.id === 'string') {
+          const variableName = d.id.replace(/^Metadata: /, '')
+          const idx = selectedDataset.metadata.data[0].indexOf(variableName)
+          unit = idx >= 0 ? selectedDataset.metadata.data[1][idx] || '' : ''
+        }
+        return {
+          ...d,
+          data: d.data.map((point) => ({
+            ...point,
+            unit,
+          })),
+        }
+      })
     const mainSeries = normalised.filter((d) => !d.id.startsWith('Metadata:'))
 
     return { metadataSeries, mainSeries }
@@ -378,10 +395,21 @@ const AnalyseTimeseries: React.FC = () => {
           const y = yScale(point.y)
           const distance = Math.sqrt((x - mouseX) ** 2 + (y - mouseY) ** 2)
 
-          // TODO: Add unit
-  
+          let unit = ''
+          if (
+            selectedDataset?.metadata &&
+            typeof metadata.id === 'string'
+          ) {
+            const variableName = metadata.id.replace(/^Metadata: /, '')
+            const variableIndex = selectedDataset.metadata.data[0].indexOf(variableName)
+            unit =
+              variableIndex !== undefined && variableIndex >= 0
+                ? selectedDataset.metadata.data[1][variableIndex]
+                : ''
+          }
+
           if (distance < 20 && distance < minDistance) {
-            closestPoint = { x: point.x, y: point.y, originalY: point.originalY , serieId: metadata.id }
+            closestPoint = { x: point.x, y: point.y, originalY: point.originalY, serieId: metadata.id, unit }
             minDistance = distance
           }
         })
@@ -402,7 +430,7 @@ const AnalyseTimeseries: React.FC = () => {
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-              {(closestPoint as MetadataPoint).serieId}
+              {(closestPoint as MetadataPoint).serieId} {(closestPoint as MetadataPoint).unit && `[${(closestPoint as MetadataPoint).unit}]`}
             </Typography>
             <Typography variant="body2">
               Time: {(closestPoint as MetadataPoint).x.toLocaleString()}
