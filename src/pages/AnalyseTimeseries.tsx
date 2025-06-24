@@ -65,8 +65,9 @@ const AnalyseTimeseries: React.FC = () => {
   const [zoomStart, setZoomStart] = useState<number | null>(null)
   const [zoomEnd, setZoomEnd] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const [downsample, setDownsample] = useState(false)
-  const [downsampleWindow, setDownsampleWindow] = useState<number>(1) // 1 means no downsampling
+  const [downsampleWindow, setDownsampleWindow] = useState<number>(10)
+
+  const dwString = selectedDataset?.type === "agroscope" ? "Metadata: DW" : "Metadata: Trockenmasse"
 
   const handleMouseLeave = () => {
     setTooltip(null)
@@ -84,17 +85,9 @@ const AnalyseTimeseries: React.FC = () => {
       )
       setVisibleLines(initialVisibleLines)
 
-      // Initialize selectedVariables with all variables
       setSelectedVariables(Object.keys(initialVisibleLines))
     }
   }, [selectedDataset])
-
-  const handleCheckboxChange = (variable: string) => {
-    setVisibleLines(prevState => ({
-      ...prevState,
-      [variable]: !prevState[variable],
-    }))
-  }
 
   const handleDownload = async () => {
     await handleDownloadChart(chartRef, 'timeseries-chart.png', currentTheme, dispatch)
@@ -223,14 +216,16 @@ const AnalyseTimeseries: React.FC = () => {
     return { metadataSeries, mainSeries }
   }, [selectedDataset])
 
+  const theme = useTheme()
+
   const metadataColors = useMemo(() => {
-    return metadataSeries.reduce((acc, metadata, index) => {
+    const colors = metadataSeries.reduce((acc, metadata, index) => {
       acc[metadata.id] = schemeSet1[index % schemeSet1.length]
       return acc
     }, {} as { [key: string]: string })
-  }, [metadataSeries])
-
-  const theme = useTheme()
+    colors[dwString] = theme.palette.secondary.main
+    return colors
+  }, [metadataSeries, theme])
 
   const sharedChartProps: {
     margin: { top: number; right: number; bottom: number; left: number }
@@ -364,7 +359,9 @@ const AnalyseTimeseries: React.FC = () => {
 
         ctx.beginPath()
         ctx.arc(x, y, 8, 0, 2 * Math.PI)
-        ctx.fillStyle = metadataColors[metadata.id]
+        ctx.fillStyle = metadata.id === dwString
+          ? metadataColors[dwString] || theme.palette.secondary.main
+          : metadataColors[metadata.id]
         ctx.fill()
         ctx.closePath()
       })
@@ -422,7 +419,7 @@ const AnalyseTimeseries: React.FC = () => {
         const tooltipContent = (
           <Box
             sx={{
-              background: theme.palette.background.paper,
+              background: metadataColors[(closestPoint as MetadataPoint).serieId] || theme.palette.background.paper,
               borderRadius: '8px',
               padding: '8px',
               textAlign: 'left',
@@ -653,6 +650,30 @@ const AnalyseTimeseries: React.FC = () => {
     setXScaleConfig(initialXScaleConfig)
   }
 
+  const MetadataProductivityLineLayer = ({ xScale, yScale, ctx }: any) => {
+    const dwSeries = filteredMetadata.find(series =>
+      series.id === dwString
+    )
+    if (!dwSeries || !dwSeries.data.length) return
+
+    ctx.save()
+    ctx.strokeStyle = metadataColors[dwString] || theme.palette.secondary.main
+    ctx.lineWidth = 5
+
+    ctx.beginPath()
+    dwSeries.data.forEach((point, idx) => {
+      const x = xScale(point.x)
+      const y = yScale(point.y)
+      if (idx === 0) {
+        ctx.moveTo(x, y)
+      } else {
+        ctx.lineTo(x, y)
+      }
+    })
+    ctx.stroke()
+    ctx.restore()
+  }
+
   return (
     <Box
       sx={{
@@ -813,6 +834,7 @@ const AnalyseTimeseries: React.FC = () => {
               'areas',
               'lines',
               'points',
+              MetadataProductivityLineLayer,
               MetadataScatterplotLayer,
               (props) => ScalesCaptureLayer(props),
               'slices',
