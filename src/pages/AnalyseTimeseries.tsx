@@ -22,6 +22,7 @@ import Button from '@mui/material/Button'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import SustainabilityBox from './SustainabilityBox'
+import ProductivityBox from './ProductivityBox'
 
 type MetadataPoint = {
   x: Date
@@ -266,36 +267,36 @@ const AnalyseTimeseries: React.FC = () => {
     tooltip: tooltip
       ? () => null
       : ({ point }: PointTooltipProps) => {
-          const isCursorLow = point.y > 100
-          const isCursorLeft = point.x < 100
-          const originalY = (point.data as any).originalY
+        const isCursorLow = point.y > 100
+        const isCursorLeft = point.x < 100
+        const originalY = (point.data as any).originalY
 
-          const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
-          const unit =
-            variableIndex !== undefined && variableIndex >= 0
-              ? selectedDataset?.data[1][variableIndex]
-              : ''
+        const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
+        const unit =
+          variableIndex !== undefined && variableIndex >= 0
+            ? selectedDataset?.data[1][variableIndex]
+            : ''
 
-          return (
-            <Box
-              sx={{
-                background: point.serieColor,
-                borderRadius: '8px',
-                padding: '8px',
-                textAlign: 'left',
-                transform: isCursorLow ? isCursorLeft ? 'translateX(+50%)' : null : isCursorLeft ? 'translate(+50%,+150%)' : 'translateY(+150%)',
-              }}
-            >
-              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                {point.serieId} {unit && `[${unit}]`}
-              </Typography>
-              <Typography variant="body2">
-                Time: {new Date(point.data.x).toLocaleString()}
-              </Typography>
-              <Typography variant="body2">Value: {originalY?.toString()}</Typography>
-            </Box>
-          )
-        },
+        return (
+          <Box
+            sx={{
+              background: point.serieColor,
+              borderRadius: '8px',
+              padding: '8px',
+              textAlign: 'left',
+              transform: isCursorLow ? isCursorLeft ? 'translateX(+50%)' : null : isCursorLeft ? 'translate(+50%,+150%)' : 'translateY(+150%)',
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+              {point.serieId} {unit && `[${unit}]`}
+            </Typography>
+            <Typography variant="body2">
+              Time: {new Date(point.data.x).toLocaleString()}
+            </Typography>
+            <Typography variant="body2">Value: {originalY?.toString()}</Typography>
+          </Box>
+        )
+      },
     xScale: {
       type: "time",
       format: "%d.%m.%Y %H:%M",
@@ -341,14 +342,12 @@ const AnalyseTimeseries: React.FC = () => {
   const [toDate, setToDate] = useState<Date | null>(xScaleConfig.max as Date | null)
 
   const durationDays =
-  fromDate && toDate
-    ? (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
-    : 0
+    fromDate && toDate
+      ? (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)
+      : 0
 
   const MetadataScatterplotLayer = ({ ctx, xScale, yScale }: any) => {
-    if (!xScale || !yScale) {
-      return
-    }
+    if (!xScale || !yScale) return
 
     ctx.save()
 
@@ -373,19 +372,19 @@ const AnalyseTimeseries: React.FC = () => {
   const handleMouseMove = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (!chartScalesRef.current || !metadataSeries) return
-  
+
       const { xScale, yScale } = chartScalesRef.current
-  
+
       const rect = chartRef.current?.getBoundingClientRect()
       if (!rect) return
-  
+
       const margin = sharedChartProps.margin
       const mouseX = event.clientX - rect.left - margin.left
       const mouseY = event.clientY - rect.top - margin.top
-  
+
       let closestPoint: MetadataPoint | null = null
       let minDistance = Infinity
-  
+
       metadataSeries.forEach((metadata) => {
         metadata.data.forEach((point) => {
           const x = xScale(point.x)
@@ -411,7 +410,7 @@ const AnalyseTimeseries: React.FC = () => {
           }
         })
       })
-  
+
       if (closestPoint) {
         const isCursorLow = mouseY > 100
         const isCursorLeft = mouseX < 100
@@ -437,7 +436,7 @@ const AnalyseTimeseries: React.FC = () => {
             </Typography>
           </Box>
         )
-  
+
         setTooltip({
           content: tooltipContent,
           x: mouseX + margin.left,
@@ -445,7 +444,7 @@ const AnalyseTimeseries: React.FC = () => {
         })
         return
       }
-  
+
       setTooltip(null)
     },
     [metadataSeries, sharedChartProps.margin, theme, metadataColors]
@@ -453,11 +452,11 @@ const AnalyseTimeseries: React.FC = () => {
 
   const ScalesCaptureLayer = (props: { xScale: any; yScale: any }) => {
     const { xScale, yScale } = props
-  
+
     if (xScale && yScale) {
       chartScalesRef.current = { xScale, yScale }
     }
-  
+
     return null
   }
 
@@ -485,7 +484,7 @@ const AnalyseTimeseries: React.FC = () => {
     setZoomStart(startDate.getTime())
     setIsDragging(true)
   }
-  
+
   const handleMouseMoveZoom = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !chartScalesRef.current) return
 
@@ -497,7 +496,7 @@ const AnalyseTimeseries: React.FC = () => {
     const endDate = xScale.invert(mouseX)
     setZoomEnd(endDate.getTime())
   }
-  
+
   const handleMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || zoomStart === null || zoomEnd === null) return
 
@@ -590,7 +589,8 @@ const AnalyseTimeseries: React.FC = () => {
       return metadataSeries
     }
 
-    return metadataSeries.map((series) => ({
+    // Filter by date range
+    let filtered = metadataSeries.map((series) => ({
       ...series,
       data: series.data.filter(
         (point) =>
@@ -600,7 +600,16 @@ const AnalyseTimeseries: React.FC = () => {
           point.x <= xScaleConfig.max
       ),
     }))
-  }, [metadataSeries, xScaleConfig])
+
+    // Sort so dwString is last
+    filtered = filtered.sort((a, b) => {
+      if (a.id === dwString) return 1
+      if (b.id === dwString) return -1
+      return 0
+    })
+
+    return filtered
+  }, [metadataSeries, xScaleConfig, dwString])
 
   const [selectedVariables, setSelectedVariables] = useState<string[]>(
     Object.keys(visibleLines).filter((key) => visibleLines[key] !== false)
@@ -659,17 +668,28 @@ const AnalyseTimeseries: React.FC = () => {
     ctx.save()
     ctx.strokeStyle = metadataColors[dwString] || theme.palette.secondary.main
     ctx.lineWidth = 5
-
     ctx.beginPath()
-    dwSeries.data.forEach((point, idx) => {
-      const x = xScale(point.x)
-      const y = yScale(point.y)
-      if (idx === 0) {
-        ctx.moveTo(x, y)
-      } else {
-        ctx.lineTo(x, y)
+
+    const points = dwSeries.data.map(point => [xScale(point.x), yScale(point.y)])
+
+    if (points.length > 1) {
+      ctx.moveTo(points[0][0], points[0][1])
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i === 0 ? 0 : i - 1]
+        const p1 = points[i]
+        const p2 = points[i + 1]
+        const p3 = points[i + 2 < points.length ? i + 2 : points.length - 1]
+
+        // Catmull-Rom to Bezier conversion
+        const cp1x = p1[0] + (p2[0] - p0[0]) / 6
+        const cp1y = p1[1] + (p2[1] - p0[1]) / 6
+        const cp2x = p2[0] - (p3[0] - p1[0]) / 6
+        const cp2y = p2[1] - (p3[1] - p1[1]) / 6
+
+        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1])
       }
-    })
+    }
+
     ctx.stroke()
     ctx.restore()
   }
@@ -751,14 +771,14 @@ const AnalyseTimeseries: React.FC = () => {
 
         <Box>
           <Button
-          color='secondary'
-          variant="contained"
-          onClick={handleResetZoom}
-          
-        >
-          Reset Zoom
+            color='secondary'
+            variant="contained"
+            onClick={handleResetZoom}
+
+          >
+            Reset Zoom
           </Button>
-          </Box>
+        </Box>
       </Box>
 
       <Box
@@ -769,83 +789,96 @@ const AnalyseTimeseries: React.FC = () => {
           position: 'relative',
         }}
       >
-        <SustainabilityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} />
-        <Box
-          ref={chartRef}
-          sx={{ height: '100%', width: '100%', position: 'relative' }}
-          onMouseMove={(event) => handleMouseMove(event)}
-          onMouseLeave={() => handleMouseLeave()}
-          onMouseDown={handleMouseDown}
-          onMouseMoveCapture={handleMouseMoveZoom}
-          onMouseUp={handleMouseUp}
-        >
-          <ResponsiveLineCanvas
-            data={filteredData.filter((d) => visibleLines[d.id] !== false)}
-            pointSize={0}
-            lineWidth={1}
-            xFormat="time:%d.%m.%Y %H:%M"
-            yScale={{
-              type: 'linear',
-              min: 0,
-              max: 1,
-              stacked: false,
-              reverse: false,
-            }}
-            axisLeft={null}
-            axisBottom={{
-              tickSize: 2,
-              tickPadding: 5,
-              legend: 'Time',
-              legendOffset: 30,
-              legendPosition: 'middle',
-              format: '%d.%m.%Y %H:%M',
-              tickValues: 5,
-            }}
-            colors={{ scheme: 'category10' }}
-            curve='basis'
-            legends={[
-              {
-                anchor: 'bottom-right',
-                direction: 'column',
-                justify: false,
-                translateX: 120,
-                translateY: 0,
-                itemWidth: 100,
-                itemHeight: 20,
-                itemsSpacing: 4,
-                symbolSize: 10,
-                itemDirection: 'left-to-right',
-                itemTextColor: theme.palette.text.secondary,
-                effects: [
-                  {
-                    on: 'hover',
-                    style: {
-                      itemBackground: 'rgba(0, 0, 0, .03)',
-                      itemOpacity: 1,
-                    },
+      <Box
+        ref={chartRef}
+        sx={{ height: '100%', width: '100%', position: 'relative' }}
+        onMouseMove={(event) => handleMouseMove(event)}
+        onMouseLeave={() => handleMouseLeave()}
+        onMouseDown={handleMouseDown}
+        onMouseMoveCapture={handleMouseMoveZoom}
+        onMouseUp={handleMouseUp}
+      >
+
+        <ResponsiveLineCanvas
+          data={filteredData.filter((d) => visibleLines[d.id] !== false)}
+          pointSize={0}
+          lineWidth={1}
+          xFormat="time:%d.%m.%Y %H:%M"
+          yScale={{
+            type: 'linear',
+            min: 0,
+            max: 1,
+            stacked: false,
+            reverse: false,
+          }}
+          axisLeft={null}
+          axisBottom={{
+            tickSize: 2,
+            tickPadding: 5,
+            legend: 'Time',
+            legendOffset: 30,
+            legendPosition: 'middle',
+            format: '%d.%m.%Y %H:%M',
+            tickValues: 5,
+          }}
+          colors={{ scheme: 'category10' }}
+          curve='basis'
+          legends={[
+            {
+              anchor: 'bottom-right',
+              direction: 'column',
+              justify: false,
+              translateX: 120,
+              translateY: 0,
+              itemWidth: 100,
+              itemHeight: 20,
+              itemsSpacing: 4,
+              symbolSize: 10,
+              itemDirection: 'left-to-right',
+              itemTextColor: theme.palette.text.secondary,
+              effects: [
+                {
+                  on: 'hover',
+                  style: {
+                    itemBackground: 'rgba(0, 0, 0, .03)',
+                    itemOpacity: 1,
                   },
-                ],
-              },
-            ]}
-            layers={[
-              'grid',
-              'markers',
-              'axes',
-              'areas',
-              'lines',
-              'points',
-              MetadataProductivityLineLayer,
-              MetadataScatterplotLayer,
-              (props) => ScalesCaptureLayer(props),
-              'slices',
-              'mesh',
-              'legends',
-            ]}
-            {...sharedChartProps}
-            xScale={xScaleConfig}
-          />
-          {renderZoomOverlay()}
+                },
+              ],
+            },
+          ]}
+          layers={[
+            'grid',
+            'markers',
+            'axes',
+            'areas',
+            'lines',
+            'points',
+            MetadataProductivityLineLayer,
+            MetadataScatterplotLayer,
+            (props) => ScalesCaptureLayer(props),
+            'slices',
+            'mesh',
+            'legends',
+          ]}
+          {...sharedChartProps}
+          xScale={xScaleConfig}
+        />
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            zIndex: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+          }}
+        >
+          <SustainabilityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} />
+          {metadataSeries.length === 0 ? null : <ProductivityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} />}
         </Box>
+        {renderZoomOverlay()}
 
         {tooltip && (
           <Box
@@ -861,21 +894,22 @@ const AnalyseTimeseries: React.FC = () => {
             {tooltip.content}
           </Box>
         )}
+      </Box>
 
-        <Tooltip title={'Download Chart as PNG'}>
-          <IconButton
-            onClick={handleDownload}
-            sx={{
-              position: 'absolute',
-              bottom: 10,
-              right: 10,
-              zIndex: 10,
-            }}
-            color='secondary'
-          >
-            <DownloadForOfflineTwoToneIcon fontSize="large" />
-          </IconButton>
-        </Tooltip>
+      <Tooltip title={'Download Chart as PNG'}>
+        <IconButton
+          onClick={handleDownload}
+          sx={{
+            position: 'absolute',
+            bottom: 10,
+            right: 10,
+            zIndex: 10,
+          }}
+          color='secondary'
+        >
+          <DownloadForOfflineTwoToneIcon fontSize="large" />
+        </IconButton>
+      </Tooltip>
       </Box>
     </Box>
   )
@@ -883,8 +917,8 @@ const AnalyseTimeseries: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-<LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={de}>
-<AnalyseTimeseries />
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={de}>
+      <AnalyseTimeseries />
     </LocalizationProvider>
   )
 }

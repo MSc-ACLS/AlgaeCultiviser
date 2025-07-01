@@ -49,7 +49,8 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
             name: 'Electricity',
             value: electricityCO2eq,
         },
-        {   name: 'CO<sub>2</sub>',
+        {
+            name: 'CO<sub>2</sub>',
             value: co2CO2eq,
         },
         {
@@ -70,18 +71,12 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
         }
     ]
 
-    return ( 
+    return (
         <Box
             sx={{
-                position: 'absolute',
-                top: 8,
-                right: 0,
                 width: 180,
                 bgcolor: theme.palette.primary.main,
                 padding: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'flex-start',
                 borderRadius: 1,
                 boxShadow: 3,
             }}
@@ -90,7 +85,7 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
                 Emissions ({durationDays.toPrecision(2)} days)
             </Typography>
 
-            { sustainabilityMetrics.filter(metric => metric.value !== 0).map((metric, idx) => (
+            {sustainabilityMetrics.filter(metric => metric.value !== 0).map((metric, idx) => (
                 <Typography
                     color='white'
                     key={idx}
@@ -99,7 +94,7 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
                 >
                     <span dangerouslySetInnerHTML={{ __html: metric.name }} />: {metric.value.toFixed(2)} CO<sub>2</sub>e
                 </Typography>
-            )) }
+            ))}
         </Box>
     )
 }
