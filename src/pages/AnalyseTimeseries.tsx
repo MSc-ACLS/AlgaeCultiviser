@@ -694,6 +694,70 @@ const AnalyseTimeseries: React.FC = () => {
     ctx.restore()
   }
 
+  // Utility to generate Catmull-Rom spline points
+  function getCatmullRomSplinePoints(points: [number, number][], step = 0.05) {
+    if (points.length < 2) return points
+    const spline: [number, number][] = []
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i === 0 ? 0 : i - 1]
+      const p1 = points[i]
+      const p2 = points[i + 1]
+      const p3 = points[i + 2 < points.length ? i + 2 : points.length - 1]
+      for (let t = 0; t < 1; t += step) {
+        const tt = t * t
+        const ttt = tt * t
+        const x =
+          0.5 *
+          ((2 * p1[0]) +
+            (-p0[0] + p2[0]) * t +
+            (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * tt +
+            (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * ttt)
+        const y =
+          0.5 *
+          ((2 * p1[1]) +
+            (-p0[1] + p2[1]) * t +
+            (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * tt +
+            (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * ttt)
+        spline.push([x, y])
+      }
+    }
+    spline.push(points[points.length - 1]) // Ensure last point
+    return spline
+  }
+
+  // In your component, after filteredMetadata is defined:
+
+  const dwSeriesFull = metadataSeries.find(series => series.id === dwString)
+
+  const productivityFittedPoints = useMemo(() => {
+    if (!dwSeriesFull || !dwSeriesFull.data.length) return []
+    return getCatmullRomSplinePoints(
+      dwSeriesFull.data.map(point => [point.x.getTime(), point.originalY])
+    ).map(([x, y]) => ({
+      x: new Date(x),
+      y,
+    }))
+  }, [dwSeriesFull])
+
+  const visibleFittedPoints = useMemo(() => {
+    if (!productivityFittedPoints.length || !(xScaleConfig.min instanceof Date) || !(xScaleConfig.max instanceof Date)) {
+      return productivityFittedPoints
+    }
+    const filtered =
+      typeof xScaleConfig.min === 'object' &&
+      xScaleConfig.min instanceof Date &&
+      typeof xScaleConfig.max === 'object' &&
+      xScaleConfig.max instanceof Date
+        ? productivityFittedPoints.filter(
+            p => p.x >= xScaleConfig.min! && p.x <= xScaleConfig.max!
+          )
+        : productivityFittedPoints
+    return filtered.length > 0 ? filtered : productivityFittedPoints
+  }, [productivityFittedPoints, xScaleConfig.min, xScaleConfig.max])
+
+  const firstFitted = visibleFittedPoints[0]?.y ?? 0
+  const lastFitted = visibleFittedPoints[visibleFittedPoints.length - 1]?.y ?? 0
+
   return (
     <Box
       sx={{
@@ -868,7 +932,7 @@ const AnalyseTimeseries: React.FC = () => {
           sx={{
             position: 'absolute',
             top: 16,
-            right: 16,
+            right: 0,
             zIndex: 20,
             display: 'flex',
             flexDirection: 'column',
@@ -876,7 +940,7 @@ const AnalyseTimeseries: React.FC = () => {
           }}
         >
           <SustainabilityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} />
-          {metadataSeries.length === 0 ? null : <ProductivityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} />}
+          {metadataSeries.length === 0 ? null : <ProductivityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} firstFitted={firstFitted} lastFitted={lastFitted} />}
         </Box>
         {renderZoomOverlay()}
 

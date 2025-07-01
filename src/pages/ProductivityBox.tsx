@@ -4,22 +4,30 @@ import { DatasetType } from '../features/dataSlice'
 interface ProductivityBoxProps {
     type: DatasetType
     durationDays: number
+    firstFitted: number
+    lastFitted: number
 }
 
-const ProductivityBox: React.FC<ProductivityBoxProps> = ({ type, durationDays }) => {
+const ProductivityBox: React.FC<ProductivityBoxProps> = ({ type, durationDays, firstFitted, lastFitted }) => {
     const theme = useTheme()
 
-    const arealProductivity = 1
-    const volumetricProductivity = 1
+    const area = type === 'agroscope' ? 2.84 : 18
+    const volume = type === 'agroscope' ? 235 : 200
+
+    const totalGramsProduced = (lastFitted - firstFitted) * volume
+    const arealProductivity = totalGramsProduced / (area * durationDays)
+    const volumetricProductivity = (lastFitted - firstFitted) / durationDays
 
     const productivityMetrics = [
         {
             name: 'Areal Productivity',
             value: arealProductivity,
+            unit: 'g/m²/day'
         },
         {
             name: 'Volumetric Productivity',
             value: volumetricProductivity,
+            unit: 'g/L/day'
         }
     ]
 
@@ -44,7 +52,7 @@ const ProductivityBox: React.FC<ProductivityBoxProps> = ({ type, durationDays })
                     variant='body2'
                     component='div'
                 >
-                    {metric.name} {metric.value.toFixed(2)} g/L
+                    {metric.name} {metric.value.toFixed(2)} {metric.unit}
                 </Typography>
             ))}
         </Box>
