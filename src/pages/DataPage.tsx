@@ -56,10 +56,10 @@ const DataPage: React.FC = () => {
               color='secondary'
               onClick={() => {
                 dispatch(setSelectedDatasetId(params.row.id))
-                navigate('/analyse')
+                navigate('/analyse/correlations')
               }}
             >
-              Time Series
+              Correlation
             </Button>
             <Button
               variant='contained'
@@ -67,10 +67,10 @@ const DataPage: React.FC = () => {
               color='secondary'
               onClick={() => {
                 dispatch(setSelectedDatasetId(params.row.id))
-                navigate('/analyse/correlations')
+                navigate('/analyse')
               }}
             >
-              Correlation
+              Time Series
             </Button>
           </Box>
         ),
@@ -90,21 +90,21 @@ const DataPage: React.FC = () => {
           </Box>
         ),
     },
-    {
-      field: 'compare',
-      headerName: 'Compare',
-      width: 150,
-      renderCell: (params) =>
-        !params.row.isMetadata && (
-          <Box sx={{ display: 'flex', alignItems: 'center', height: '100%'}}>
-            <Checkbox
-              color='secondary'
-              checked={compareSelection.includes(params.row.id)}
-              onChange={() => handleCompareChange(params.row.id)}
-            />
-          </Box>
-        ),
-    },
+    // {
+    //   field: 'compare',
+    //   headerName: 'Compare',
+    //   width: 150,
+    //   renderCell: (params) =>
+    //     !params.row.isMetadata && (
+    //       <Box sx={{ display: 'flex', alignItems: 'center', height: '100%'}}>
+    //         <Checkbox
+    //           color='secondary'
+    //           checked={compareSelection.includes(params.row.id)}
+    //           onChange={() => handleCompareChange(params.row.id)}
+    //         />
+    //       </Box>
+    //     ),
+    // },
   ]
 
   const rows = datasets.flatMap((dataset) => {
@@ -338,13 +338,13 @@ const DataPage: React.FC = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant='h5'>Datasets</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
+          {/* <Button
             variant='contained'
             onClick={handleCompare}
             disabled={compareSelection.length <= 1}
           >
             Compare
-          </Button>
+          </Button> */}
           <Button
             variant='contained'
             component='label'
