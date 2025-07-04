@@ -41,13 +41,13 @@ const ProductivityBox: React.FC<ProductivityBoxProps> = ({ type, durationDays, f
                 boxShadow: 3,
             }}
         >
-            <Typography color='white' variant='subtitle2' sx={{ fontWeight: 'bold', mb: 1 }}>
+            <Typography color='black' variant='subtitle2' sx={{ fontWeight: 'bold', mb: 1 }}>
                 Productivity ({durationDays.toPrecision(2)} days)
             </Typography>
 
             {productivityMetrics.filter(metric => metric.value !== 0).map((metric, idx) => (
                 <Typography
-                    color='white'
+                    color='black'
                     key={idx}
                     variant='body2'
                     component='div'

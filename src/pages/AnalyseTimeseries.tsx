@@ -425,13 +425,13 @@ const AnalyseTimeseries: React.FC = () => {
               transform: isCursorLow ? isCursorLeft ? 'translateX(+50%)' : null : isCursorLeft ? 'translate(+50%,+150%)' : 'translateY(+150%)',
             }}
           >
-            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <Typography color='black' variant="body2" sx={{ fontWeight: 'bold' }}>
               {(closestPoint as MetadataPoint).serieId} {(closestPoint as MetadataPoint).unit && `[${(closestPoint as MetadataPoint).unit}]`}
             </Typography>
-            <Typography variant="body2">
+            <Typography color='black' variant="body2">
               Time: {(closestPoint as MetadataPoint).x.toLocaleString()}
             </Typography>
-            <Typography variant="body2">
+            <Typography color='black' variant="body2">
               Value: {(closestPoint as MetadataPoint).originalY.toPrecision(3)}
             </Typography>
           </Box>
@@ -589,7 +589,6 @@ const AnalyseTimeseries: React.FC = () => {
       return metadataSeries
     }
 
-    // Filter by date range
     let filtered = metadataSeries.map((series) => ({
       ...series,
       data: series.data.filter(
@@ -601,7 +600,6 @@ const AnalyseTimeseries: React.FC = () => {
       ),
     }))
 
-    // Sort so dwString is last
     filtered = filtered.sort((a, b) => {
       if (a.id === dwString) return 1
       if (b.id === dwString) return -1
@@ -680,7 +678,6 @@ const AnalyseTimeseries: React.FC = () => {
         const p2 = points[i + 1]
         const p3 = points[i + 2 < points.length ? i + 2 : points.length - 1]
 
-        // Catmull-Rom to Bezier conversion
         const cp1x = p1[0] + (p2[0] - p0[0]) / 6
         const cp1y = p1[1] + (p2[1] - p0[1]) / 6
         const cp2x = p2[0] - (p3[0] - p1[0]) / 6
@@ -694,7 +691,6 @@ const AnalyseTimeseries: React.FC = () => {
     ctx.restore()
   }
 
-  // Utility to generate Catmull-Rom spline points
   function getCatmullRomSplinePoints(points: [number, number][], step = 0.05) {
     if (points.length < 2) return points
     const spline: [number, number][] = []
@@ -757,6 +753,32 @@ const AnalyseTimeseries: React.FC = () => {
 
   const firstFitted = visibleFittedPoints[0]?.y ?? 0
   const lastFitted = visibleFittedPoints[visibleFittedPoints.length - 1]?.y ?? 0
+
+  const co2ColumnName = selectedDataset?.type === 'agroscope' ? 'CO2' : 'FLOW.OF.CO2'
+  let co2Sum = 0
+
+  if (
+    selectedDataset &&
+    selectedDataset.data &&
+    xScaleConfig.min instanceof Date &&
+    xScaleConfig.max instanceof Date
+  ) {
+    const colIdx = selectedDataset.data[0].indexOf(co2ColumnName)
+    if (colIdx !== -1) {
+      co2Sum = selectedDataset.data
+        .slice(2) // skip header rows
+        .filter(row => {
+          const date = new Date(row[0])
+          if (!(xScaleConfig.min instanceof Date) || !(xScaleConfig.max instanceof Date)) {
+            return false
+          }
+          return date >= xScaleConfig.min && date <= xScaleConfig.max
+        })
+        .map(row => parseFloat(row[colIdx]))
+        .filter(val => !isNaN(val))
+        .reduce((sum, val) => sum + val, 0)
+    }
+  }
 
   return (
     <Box
@@ -939,7 +961,11 @@ const AnalyseTimeseries: React.FC = () => {
             gap: 1,
           }}
         >
-          <SustainabilityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} />
+          <SustainabilityBox
+            type={selectedDataset?.type || 'agroscope'}
+            durationDays={durationDays}
+            co2Sum={co2Sum}
+          />
           {metadataSeries.length === 0 ? null : <ProductivityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} firstFitted={firstFitted} lastFitted={lastFitted} />}
         </Box>
         {renderZoomOverlay()}
