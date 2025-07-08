@@ -58,7 +58,7 @@ const ProductivityBox: React.FC<ProductivityBoxProps> = ({ type, durationDays, f
                     variant='body2'
                     component='div'
                 >
-                    {metric.name} {metric.value.toFixed(2)} {metric.unit}
+                    {metric.name}: {metric.value.toFixed(2)} {metric.unit}
                 </Typography>
             ))}
         </Box>

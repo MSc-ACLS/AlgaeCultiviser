@@ -102,7 +102,7 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
                     variant='body2'
                     component='div'
                 >
-                    <span dangerouslySetInnerHTML={{ __html: metric.name }} />: {metric.value.toFixed(2)} kg CO<sub>2</sub>e
+                    <span dangerouslySetInnerHTML={{ __html: metric.name }} />: {metric.value.toFixed(2)} kg CO<sub>2</sub>-eq
                 </Typography>
             ))}
 
@@ -112,7 +112,7 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
                 component='div'
                 sx={{ mt: 1, fontWeight: 'bold' }}
             >
-                Total: {totalCO2eq.toFixed(2)} kg CO<sub>2</sub>e
+                Total: {totalCO2eq.toFixed(2)} kg CO<sub>2</sub>-eq
             </Typography>
         </Box>
     )
