@@ -50,6 +50,14 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
 
     const sustainabilityMetrics = [
         {
+            name: 'CTP Reactor',
+            value: ctpReactorCO2eq,
+        },
+        {
+            name: 'OTP Reactor',
+            value: otpReactorCO2eq,
+        },
+        {
             name: 'Electricity',
             value: electricityCO2eq,
         },
@@ -66,23 +74,17 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
             value: ammoniumSulfateCO2eq,
         },
         {
-            name: 'CTP Reactor',
-            value: ctpReactorCO2eq,
-        },
-        {
-            name: 'OTP Reactor',
-            value: otpReactorCO2eq,
-        },
-        {
-            name: 'Sodium Hypochlorite',
+            name: 'NaClO',
             value: sodiumHypochloriteCO2eq,
         }
     ]
 
+    const totalCO2eq = sustainabilityMetrics.reduce((sum, metric) => sum + metric.value, 0)
+
     return (
         <Box
             sx={{
-                width: 180,
+                width: 220,
                 bgcolor: theme.palette.primary.main,
                 padding: 1,
                 borderRadius: 1,
@@ -103,6 +105,15 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
                     <span dangerouslySetInnerHTML={{ __html: metric.name }} />: {metric.value.toFixed(2)} kg CO<sub>2</sub>e
                 </Typography>
             ))}
+
+            <Typography
+                color='white'
+                variant='body2'
+                component='div'
+                sx={{ mt: 1, fontWeight: 'bold' }}
+            >
+                Total: {totalCO2eq.toFixed(2)} kg CO<sub>2</sub>e
+            </Typography>
         </Box>
     )
 }

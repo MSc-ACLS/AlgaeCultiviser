@@ -17,24 +17,30 @@ const ProductivityBox: React.FC<ProductivityBoxProps> = ({ type, durationDays, f
     const totalGramsProduced = (lastFitted - firstFitted) * volume
     const arealProductivity = totalGramsProduced / (area * durationDays)
     const volumetricProductivity = (lastFitted - firstFitted) / durationDays
+    const totalProteinProduced = totalGramsProduced * 0.4
 
     const productivityMetrics = [
         {
-            name: 'Areal Productivity',
+            name: 'Areal',
             value: arealProductivity,
             unit: 'g/m²/day'
         },
         {
-            name: 'Volumetric Productivity',
+            name: 'Volumetric',
             value: volumetricProductivity,
             unit: 'g/L/day'
+        },
+        {
+            name: 'Protein',
+            value: totalProteinProduced,
+            unit: 'g'
         }
     ]
 
     return (
         <Box
             sx={{
-                width: 180,
+                width: 220,
                 bgcolor: theme.palette.secondary.main,
                 padding: 1,
                 borderRadius: 1,

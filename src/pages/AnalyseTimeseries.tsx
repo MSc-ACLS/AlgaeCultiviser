@@ -247,7 +247,7 @@ const AnalyseTimeseries: React.FC = () => {
       max: Date | "auto"
     }
   } = {
-    margin: { top: 20, right: 200, bottom: 40, left: 0 },
+    margin: { top: 20, right: 240, bottom: 40, left: 0 },
     enableGridX: false,
     enableGridY: false,
     theme: {

@@ -145,8 +145,15 @@ const DataPage: React.FC = () => {
   }, [selectionModel, dispatch])
 
   const getColumnStats = (columnData: any[]) => {
-    const numericData = columnData.map((val) => parseFloat(val))
+    const numericData = columnData
+      .map((val) => parseFloat(val))
+      .filter((val) => !isNaN(val))
+
     const count = numericData.length
+    if (count === 0) {
+      return { count: 0, mean: NaN, min: NaN, max: NaN }
+    }
+
     const mean = numericData.reduce((acc, val) => acc + val, 0) / count
     const min = Math.min(...numericData)
     const max = Math.max(...numericData)
@@ -182,17 +189,17 @@ const DataPage: React.FC = () => {
           isDateColumn ? columnData.map((value) => parse(value, 'dd.MM.yyyy HH:mm:ss.SSS', new Date()).getTime()) : columnData
         )
 
-        const type = isDateColumn ? 'Date' : typeof columnData[0]
+        //const type = isDateColumn ? 'Date' : typeof columnData[0]
 
         const unit = selectedDataset.data[1]?.[index] || ''
 
         const tooltipTitle = (
           <table>
             <tbody>
-              <tr>
+              {/* <tr>
                 <td>Type:</td>
                 <td>{type}</td>
-              </tr>
+              </tr> */}
               <tr>
                 <td>Count:</td>
                 <td>{count}</td>
