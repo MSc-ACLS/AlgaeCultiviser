@@ -273,9 +273,10 @@ const DataPage: React.FC = () => {
           const rawData = result.data as any[]
           if (rawData.length > 1) {
             try {
-              const data = parseDataset(rawData, 'dd.MM.yyyy HH:mm:ss.SSS')
 
               const type = file.name.includes('agro') ? 'agroscope' : 'zhaw'
+
+              const data = parseDataset(rawData, type, 'dd.MM.yyyy HH:mm:ss.SSS')
 
               const isMetaFile = file.name.includes('_meta.csv')
               if (isMetaFile) {

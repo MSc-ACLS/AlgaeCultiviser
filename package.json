@@ -18,6 +18,7 @@
     "@nivo/line": "^0.88.0",
     "@nivo/scatterplot": "^0.88.0",
     "@reduxjs/toolkit": "^2.5.1",
+    "cubic-spline": "^3.0.3",
     "date-fns": "^4.1.0",
     "html2canvas": "^1.4.1",
     "papaparse": "^5.5.2",

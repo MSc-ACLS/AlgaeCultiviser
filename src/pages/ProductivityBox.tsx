@@ -18,6 +18,7 @@ const ProductivityBox: React.FC<ProductivityBoxProps> = ({ type, durationDays, f
     const arealProductivity = totalGramsProduced / (area * durationDays)
     const volumetricProductivity = (lastFitted - firstFitted) / durationDays
     const totalProteinProduced = totalGramsProduced * 0.4
+    const totalCo2Fixed = totalGramsProduced * 1.83
 
     const productivityMetrics = [
         {
@@ -31,8 +32,18 @@ const ProductivityBox: React.FC<ProductivityBoxProps> = ({ type, durationDays, f
             unit: 'g/L/day'
         },
         {
+            name: 'Biomass',
+            value: totalGramsProduced,
+            unit: 'g'
+        },
+        {
             name: 'Protein',
             value: totalProteinProduced,
+            unit: 'g'
+        },
+        {
+            name: 'Fixed CO<sub>2</sub>',
+            value: totalCo2Fixed,
             unit: 'g'
         }
     ]
@@ -58,7 +69,7 @@ const ProductivityBox: React.FC<ProductivityBoxProps> = ({ type, durationDays, f
                     variant='body2'
                     component='div'
                 >
-                    {metric.name}: {metric.value.toFixed(2)} {metric.unit}
+                    <span dangerouslySetInnerHTML={{ __html: metric.name }} />: {metric.value.toFixed(2)} {metric.unit}
                 </Typography>
             ))}
         </Box>

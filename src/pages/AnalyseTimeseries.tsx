@@ -23,6 +23,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import SustainabilityBox from './SustainabilityBox'
 import ProductivityBox from './ProductivityBox'
+import CubicSpline from 'cubic-spline'
 
 type MetadataPoint = {
   x: Date
@@ -691,43 +692,28 @@ const AnalyseTimeseries: React.FC = () => {
     ctx.restore()
   }
 
-  function getCatmullRomSplinePoints(points: [number, number][], step = 0.05) {
+  function getCubicSplinePoints(points: [number, number][], step = 0.05) {
     if (points.length < 2) return points
-    const spline: [number, number][] = []
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i === 0 ? 0 : i - 1]
-      const p1 = points[i]
-      const p2 = points[i + 1]
-      const p3 = points[i + 2 < points.length ? i + 2 : points.length - 1]
-      for (let t = 0; t < 1; t += step) {
-        const tt = t * t
-        const ttt = tt * t
-        const x =
-          0.5 *
-          ((2 * p1[0]) +
-            (-p0[0] + p2[0]) * t +
-            (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * tt +
-            (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * ttt)
-        const y =
-          0.5 *
-          ((2 * p1[1]) +
-            (-p0[1] + p2[1]) * t +
-            (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * tt +
-            (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * ttt)
-        spline.push([x, y])
-      }
-    }
-    spline.push(points[points.length - 1]) // Ensure last point
-    return spline
-  }
+    const xs = points.map(([x, _]) => x)
+    const ys = points.map(([_, y]) => y)
+    const spline = new CubicSpline(xs, ys)
 
-  // In your component, after filteredMetadata is defined:
+    // Generate fitted points at regular intervals
+    const minX = Math.min(...xs)
+    const maxX = Math.max(...xs)
+    const fitted: [number, number][] = []
+    for (let x = minX; x <= maxX; x += step * (maxX - minX)) {
+      fitted.push([x, spline.at(x)])
+    }
+    fitted.push([maxX, spline.at(maxX)]) // Ensure last point
+    return fitted
+  }
 
   const dwSeriesFull = metadataSeries.find(series => series.id === dwString)
 
   const productivityFittedPoints = useMemo(() => {
     if (!dwSeriesFull || !dwSeriesFull.data.length) return []
-    return getCatmullRomSplinePoints(
+    return getCubicSplinePoints(
       dwSeriesFull.data.map(point => [point.x.getTime(), point.originalY])
     ).map(([x, y]) => ({
       x: new Date(x),
@@ -741,12 +727,12 @@ const AnalyseTimeseries: React.FC = () => {
     }
     const filtered =
       typeof xScaleConfig.min === 'object' &&
-      xScaleConfig.min instanceof Date &&
-      typeof xScaleConfig.max === 'object' &&
-      xScaleConfig.max instanceof Date
+        xScaleConfig.min instanceof Date &&
+        typeof xScaleConfig.max === 'object' &&
+        xScaleConfig.max instanceof Date
         ? productivityFittedPoints.filter(
-            p => p.x >= xScaleConfig.min! && p.x <= xScaleConfig.max!
-          )
+          p => p.x >= xScaleConfig.min! && p.x <= xScaleConfig.max!
+        )
         : productivityFittedPoints
     return filtered.length > 0 ? filtered : productivityFittedPoints
   }, [productivityFittedPoints, xScaleConfig.min, xScaleConfig.max])
@@ -875,131 +861,131 @@ const AnalyseTimeseries: React.FC = () => {
           position: 'relative',
         }}
       >
-      <Box
-        ref={chartRef}
-        sx={{ height: '100%', width: '100%', position: 'relative' }}
-        onMouseMove={(event) => handleMouseMove(event)}
-        onMouseLeave={() => handleMouseLeave()}
-        onMouseDown={handleMouseDown}
-        onMouseMoveCapture={handleMouseMoveZoom}
-        onMouseUp={handleMouseUp}
-      >
-
-        <ResponsiveLineCanvas
-          data={filteredData.filter((d) => visibleLines[d.id] !== false)}
-          pointSize={0}
-          lineWidth={1}
-          xFormat="time:%d.%m.%Y %H:%M"
-          yScale={{
-            type: 'linear',
-            min: 0,
-            max: 1,
-            stacked: false,
-            reverse: false,
-          }}
-          axisLeft={null}
-          axisBottom={{
-            tickSize: 2,
-            tickPadding: 5,
-            legend: 'Time',
-            legendOffset: 30,
-            legendPosition: 'middle',
-            format: '%d.%m.%Y %H:%M',
-            tickValues: 5,
-          }}
-          colors={{ scheme: 'category10' }}
-          curve='basis'
-          legends={[
-            {
-              anchor: 'bottom-right',
-              direction: 'column',
-              justify: false,
-              translateX: 120,
-              translateY: 0,
-              itemWidth: 100,
-              itemHeight: 20,
-              itemsSpacing: 4,
-              symbolSize: 10,
-              itemDirection: 'left-to-right',
-              itemTextColor: theme.palette.text.secondary,
-              effects: [
-                {
-                  on: 'hover',
-                  style: {
-                    itemBackground: 'rgba(0, 0, 0, .03)',
-                    itemOpacity: 1,
-                  },
-                },
-              ],
-            },
-          ]}
-          layers={[
-            'grid',
-            'markers',
-            'axes',
-            'areas',
-            'lines',
-            'points',
-            MetadataProductivityLineLayer,
-            MetadataScatterplotLayer,
-            (props) => ScalesCaptureLayer(props),
-            'slices',
-            'mesh',
-            'legends',
-          ]}
-          {...sharedChartProps}
-          xScale={xScaleConfig}
-        />
         <Box
-          sx={{
-            position: 'absolute',
-            top: 16,
-            right: 0,
-            zIndex: 20,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-          }}
+          ref={chartRef}
+          sx={{ height: '100%', width: '100%', position: 'relative' }}
+          onMouseMove={(event) => handleMouseMove(event)}
+          onMouseLeave={() => handleMouseLeave()}
+          onMouseDown={handleMouseDown}
+          onMouseMoveCapture={handleMouseMoveZoom}
+          onMouseUp={handleMouseUp}
         >
-          <SustainabilityBox
-            type={selectedDataset?.type || 'agroscope'}
-            durationDays={durationDays}
-            co2Sum={co2Sum}
-          />
-          {metadataSeries.length === 0 ? null : <ProductivityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} firstFitted={firstFitted} lastFitted={lastFitted} />}
-        </Box>
-        {renderZoomOverlay()}
 
-        {tooltip && (
+          <ResponsiveLineCanvas
+            data={filteredData.filter((d) => visibleLines[d.id] !== false)}
+            pointSize={0}
+            lineWidth={1}
+            xFormat="time:%d.%m.%Y %H:%M"
+            yScale={{
+              type: 'linear',
+              min: 0,
+              max: 1,
+              stacked: false,
+              reverse: false,
+            }}
+            axisLeft={null}
+            axisBottom={{
+              tickSize: 2,
+              tickPadding: 5,
+              legend: 'Time',
+              legendOffset: 30,
+              legendPosition: 'middle',
+              format: '%d.%m.%Y %H:%M',
+              tickValues: 5,
+            }}
+            colors={{ scheme: 'category10' }}
+            curve='basis'
+            legends={[
+              {
+                anchor: 'bottom-right',
+                direction: 'column',
+                justify: false,
+                translateX: 120,
+                translateY: 0,
+                itemWidth: 100,
+                itemHeight: 20,
+                itemsSpacing: 4,
+                symbolSize: 10,
+                itemDirection: 'left-to-right',
+                itemTextColor: theme.palette.text.secondary,
+                effects: [
+                  {
+                    on: 'hover',
+                    style: {
+                      itemBackground: 'rgba(0, 0, 0, .03)',
+                      itemOpacity: 1,
+                    },
+                  },
+                ],
+              },
+            ]}
+            layers={[
+              'grid',
+              'markers',
+              'axes',
+              'areas',
+              'lines',
+              'points',
+              MetadataProductivityLineLayer,
+              MetadataScatterplotLayer,
+              (props) => ScalesCaptureLayer(props),
+              'slices',
+              'mesh',
+              'legends',
+            ]}
+            {...sharedChartProps}
+            xScale={xScaleConfig}
+          />
           <Box
             sx={{
               position: 'absolute',
-              top: tooltip.y,
-              left: tooltip.x,
-              pointerEvents: 'none',
-              transform: 'translate(-50%, -100%)',
-              zIndex: 10,
+              top: 16,
+              right: 0,
+              zIndex: 20,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
             }}
           >
-            {tooltip.content}
+            <SustainabilityBox
+              type={selectedDataset?.type || 'agroscope'}
+              durationDays={durationDays}
+              co2Sum={co2Sum}
+            />
+            {metadataSeries.length === 0 ? null : <ProductivityBox type={selectedDataset?.type || 'agroscope'} durationDays={durationDays} firstFitted={firstFitted} lastFitted={lastFitted} />}
           </Box>
-        )}
-      </Box>
+          {renderZoomOverlay()}
 
-      <Tooltip title={'Download Chart as PNG'}>
-        <IconButton
-          onClick={handleDownload}
-          sx={{
-            position: 'absolute',
-            bottom: 10,
-            right: 10,
-            zIndex: 10,
-          }}
-          color='secondary'
-        >
-          <DownloadForOfflineTwoToneIcon fontSize="large" />
-        </IconButton>
-      </Tooltip>
+          {tooltip && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: tooltip.y,
+                left: tooltip.x,
+                pointerEvents: 'none',
+                transform: 'translate(-50%, -100%)',
+                zIndex: 10,
+              }}
+            >
+              {tooltip.content}
+            </Box>
+          )}
+        </Box>
+
+        <Tooltip title={'Download Chart as PNG'}>
+          <IconButton
+            onClick={handleDownload}
+            sx={{
+              position: 'absolute',
+              bottom: 10,
+              right: 10,
+              zIndex: 10,
+            }}
+            color='secondary'
+          >
+            <DownloadForOfflineTwoToneIcon fontSize="large" />
+          </IconButton>
+        </Tooltip>
       </Box>
     </Box>
   )
