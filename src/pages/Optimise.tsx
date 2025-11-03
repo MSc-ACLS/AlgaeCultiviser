@@ -4,12 +4,14 @@ import OutlinedInput from '@mui/material/OutlinedInput'
 import Checkbox from '@mui/material/Checkbox'
 import ListItemText from '@mui/material/ListItemText'
 import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
+import { ResponsiveLineCanvas, PointTooltipProps } from '@nivo/line'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../store'
 import { useRef, useState, useEffect } from 'react'
 import CubicSpline from 'cubic-spline'
 import { useTheme } from '@mui/material/styles'
 import { handleDownloadChart } from '../utils/downloadChart'
+import OptimiserMetricsBox from './OptimiserMetricsBox'
 
 const Optimise: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
@@ -17,7 +19,7 @@ const Optimise: React.FC = () => {
   const selectedDataset = selectedDatasetId !== null ? datasets.find(dataset => dataset.id === selectedDatasetId) : null
 
   // Transform data into the required format
-  const transformedData = selectedDataset ? transformDataForOptimizer(selectedDataset) : null
+  const transformedData = selectedDataset ? transformDataForOptimiser(selectedDataset) : null
   
   console.log('Transformed Data:', transformedData)
   
@@ -27,7 +29,7 @@ const Optimise: React.FC = () => {
   const currentTheme = useSelector((state: RootState) => state.theme)
 
   // Function to transform the data into the required format
-  function transformDataForOptimizer(dataset: any) {
+  function transformDataForOptimiser(dataset: any) {
     if (!dataset.data || !dataset.metadata) {
       console.warn('Missing data or metadata in dataset:', dataset)
       return null;
@@ -267,7 +269,7 @@ const Optimise: React.FC = () => {
     await handleDownloadChart(chartRef, 'correlations-chart.png', currentTheme, dispatch)
   }
 
-  // --- Optimizer Config State ---
+  // --- Optimiser Config State ---
   const [config, setConfig] = useState({
     smooth_window: 5,
     smooth_poly: 3,
@@ -287,10 +289,40 @@ const Optimise: React.FC = () => {
     c_uN: 1.0,
   })
 
-  // --- Optimizer Request State ---
-  const [result, setResult] = useState<any>(null)
+  // --- Optimiser Request State ---
+  // Result type definition for better type safety
+  type OptimiserScheduleEntry = {
+    hour: number
+    I: number
+    T: number
+    flow: number
+    uN: number
+    X_next: number
+    impact_per_hour: number
+  }
+
+  type OptimiserResult = {
+    ok: boolean
+    theta: number[]
+    chosen_H: number
+    report: {
+      success: boolean
+      message: string
+      fun: number
+      X_final: number
+      gap: number
+    }
+    X0: number
+    X_target: number
+    total_impact: number
+    schedule: OptimiserScheduleEntry[]
+  }
+
+  const [result, setResult] = useState<string | OptimiserResult | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+
+  console.log('Result: ', result)
 
   // --- Form Handlers ---
   const handleConfigChange = (key: keyof typeof config, value: number) => {
@@ -355,7 +387,7 @@ const Optimise: React.FC = () => {
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Typography variant='h5' sx={{ mb: 2 }}>Optimise</Typography>
 
-      {/* --- Optimizer Config Form (4 columns, each with 2-row layout) --- */}
+      {/* --- Optimiser Config Form (4 columns, each with 2-row layout) --- */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
         {/* Config Column */}
         <Box sx={{ flex: 1}}>
@@ -419,7 +451,7 @@ const Optimise: React.FC = () => {
                 input={<OutlinedInput />}
                 renderValue={selected => (selected as number[]).join(', ')}
               >
-                {[12, 18, 24, 36, 48].map(val => (
+                {[12, 18, 24, 36, 48, 72, 96, 120, 144, 168, 192].map(val => (
                   <MenuItem key={val} value={val}>
                     <Checkbox checked={H_candidates.includes(val)} />
                     <ListItemText primary={val} />
@@ -459,24 +491,240 @@ const Optimise: React.FC = () => {
       </Box>
 
 
-      {/* --- Optimizer Result --- */}
+      {/* --- Optimiser Result --- */}
       <Box sx={{ flex: 1, width: '100%', overflow: 'hidden', position: 'relative' }} ref={chartRef}>
-        <Box sx={{ height: '100%', width: '100%', p: 2, overflow: 'auto' }}>
-          {loading ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CircularProgress size={20} />
-              <Typography>Requesting optimizer...</Typography>
-            </Box>
-          ) : result ? (
-            typeof result === 'string' ? (
-              <Typography variant='body2' component='pre' sx={{ whiteSpace: 'pre-wrap' }}>{result}</Typography>
-            ) : (
-              <pre style={{ color: theme.palette.text.primary, whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre>
-            )
+        {loading ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
+            <CircularProgress size={20} />
+            <Typography>Requesting optimiser...</Typography>
+          </Box>
+        ) : result ? (
+          typeof result === 'string' ? (
+            <Typography variant='body2' component='pre' sx={{ whiteSpace: 'pre-wrap', p: 2 }}>{result}</Typography>
           ) : (
-            <Typography variant='body2'>No result yet.</Typography>
-          )}
-        </Box>
+            <Box sx={{ height: '100%', width: '100%' }}>
+              <ResponsiveLineCanvas
+                data={(() => {
+                  // Calculate min/max for each variable
+                  const minMax = {
+                    X_next: {
+                      min: Math.min(...result.schedule.map(d => d.X_next)),
+                      max: Math.max(...result.schedule.map(d => d.X_next))
+                    },
+                    I: {
+                      min: Math.min(...result.schedule.map(d => d.I)),
+                      max: Math.max(...result.schedule.map(d => d.I))
+                    },
+                    T: {
+                      min: Math.min(...result.schedule.map(d => d.T)),
+                      max: Math.max(...result.schedule.map(d => d.T))
+                    },
+                    flow: {
+                      min: Math.min(...result.schedule.map(d => d.flow)),
+                      max: Math.max(...result.schedule.map(d => d.flow))
+                    },
+                    uN: {
+                      min: Math.min(...result.schedule.map(d => d.uN)),
+                      max: Math.max(...result.schedule.map(d => d.uN))
+                    }
+                  }
+
+                  // Helper function to normalize a value
+                  const normalize = (value: number, min: number, max: number) => 
+                    max === min ? 0.5 : (value - min) / (max - min)
+
+                  return [
+                    {
+                      id: 'X_next (g/L)',
+                      data: result.schedule.map(d => ({ 
+                        x: d.hour, 
+                        y: normalize(d.X_next, minMax.X_next.min, minMax.X_next.max),
+                        originalY: d.X_next
+                      }))
+                    },
+                    {
+                      id: 'I (µmol/m²/s)',
+                      data: result.schedule.map(d => ({ 
+                        x: d.hour, 
+                        y: normalize(d.I, minMax.I.min, minMax.I.max),
+                        originalY: d.I
+                      }))
+                    },
+                    {
+                      id: 'T (°C)',
+                      data: result.schedule.map(d => ({ 
+                        x: d.hour, 
+                        y: normalize(d.T, minMax.T.min, minMax.T.max),
+                        originalY: d.T
+                      }))
+                    },
+                    {
+                      id: 'flow (L/min)',
+                      data: result.schedule.map(d => ({ 
+                        x: d.hour, 
+                        y: normalize(d.flow, minMax.flow.min, minMax.flow.max),
+                        originalY: d.flow
+                      }))
+                    },
+                    {
+                      id: 'uN (mL/h)',
+                      data: result.schedule.map(d => ({ 
+                        x: d.hour, 
+                        y: normalize(d.uN, minMax.uN.min, minMax.uN.max),
+                        originalY: d.uN
+                      }))
+                    }
+                  ]
+                })()}
+                margin={{ top: 20, right: 140, bottom: 50, left: 60 }}
+                xScale={{
+                  type: 'linear',
+                  min: 'auto',
+                  max: 'auto'
+                }}
+                yScale={{
+                  type: 'linear',
+                  min: 'auto',
+                  max: 'auto',
+                  stacked: false,
+                  reverse: false
+                }}
+                tooltip={({ point }: PointTooltipProps) => (
+                  <Box
+                    sx={{
+                      background: theme.palette.background.paper,
+                      padding: '6px 12px',
+                      border: `1px solid ${theme.palette.divider}`,
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="body2" color="text.primary">
+                      {point.serieId}: {Number(point.data.y).toFixed(2)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Hour: {Number(point.data.x).toFixed(0)}
+                    </Typography>
+                  </Box>
+                )}
+                axisLeft={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: 'Value',
+                  legendOffset: -40,
+                  legendPosition: 'middle'
+                }}
+                axisBottom={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: 'Hour',
+                  legendOffset: 36,
+                  legendPosition: 'middle'
+                }}
+                pointSize={4}
+                pointColor={{ theme: 'background' }}
+                pointBorderWidth={2}
+                pointBorderColor={{ from: 'serieColor' }}
+                enablePoints={true}
+                legends={[
+                  {
+                    anchor: 'bottom-right',
+                    direction: 'column',
+                    justify: false,
+                    translateX: 100,
+                    translateY: 0,
+                    itemsSpacing: 0,
+                    itemDirection: 'left-to-right',
+                    itemWidth: 80,
+                    itemHeight: 20,
+                    itemOpacity: 0.75,
+                    symbolSize: 12,
+                    symbolShape: 'circle',
+                    symbolBorderColor: 'rgba(0, 0, 0, .5)',
+                    effects: [
+                      {
+                        on: 'hover',
+                        style: {
+                          itemBackground: 'rgba(0, 0, 0, .03)',
+                          itemOpacity: 1
+                        }
+                      }
+                    ]
+                  }
+                ]}
+                theme={{
+                  text: {
+                    fontSize: 11,
+                    fill: theme.palette.text.primary,
+                    outlineWidth: 0,
+                    outlineColor: 'transparent'
+                  },
+                  axis: {
+                    domain: {
+                      line: {
+                        stroke: theme.palette.text.primary,
+                        strokeWidth: 1
+                      }
+                    },
+                    ticks: {
+                      line: {
+                        stroke: theme.palette.text.primary,
+                        strokeWidth: 1
+                      },
+                      text: {
+                        fill: theme.palette.text.primary
+                      }
+                    },
+                    legend: {
+                      text: {
+                        fill: theme.palette.text.primary
+                      }
+                    }
+                  },
+                  grid: {
+                    line: {
+                      stroke: theme.palette.divider,
+                      strokeWidth: 1
+                    }
+                  },
+                  legends: {
+                    text: {
+                      fill: theme.palette.text.primary
+                    }
+                  },
+                  tooltip: {
+                    container: {
+                      background: theme.palette.background.paper,
+                      color: theme.palette.text.primary,
+                      fontSize: 12
+                    }
+                  }
+                }}
+              />
+              <Box
+                          sx={{
+                            position: 'absolute',
+                            top: 16,
+                            right: 0,
+                            zIndex: 20,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 1,
+                          }}
+                        >
+                          <OptimiserMetricsBox
+                            horizon={result.chosen_H}
+                            xFinal={result.report.X_final}
+                            gap={result.report.gap}
+                          />
+                        </Box>
+            </Box>
+            
+          )
+        ) : (
+          <Typography variant='body2' sx={{ p: 2 }}>No result yet.</Typography>
+        )}
         <Tooltip title={'Download Chart as PNG'}>
           <IconButton
             onClick={handleDownload}
