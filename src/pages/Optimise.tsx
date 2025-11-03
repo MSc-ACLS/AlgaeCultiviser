@@ -1,4 +1,8 @@
 import { Box, Typography, FormControl, Select, MenuItem, SelectChangeEvent, Tooltip, IconButton, Button, CircularProgress } from '@mui/material'
+import InputLabel from '@mui/material/InputLabel'
+import OutlinedInput from '@mui/material/OutlinedInput'
+import Checkbox from '@mui/material/Checkbox'
+import ListItemText from '@mui/material/ListItemText'
 import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../store'
@@ -6,7 +10,6 @@ import { useRef, useState, useEffect } from 'react'
 import CubicSpline from 'cubic-spline'
 import { useTheme } from '@mui/material/styles'
 import { handleDownloadChart } from '../utils/downloadChart'
-import sample_payload from '../../public/data/sample_payload.json'
 
 const Optimise: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
@@ -264,30 +267,81 @@ const Optimise: React.FC = () => {
     await handleDownloadChart(chartRef, 'correlations-chart.png', currentTheme, dispatch)
   }
 
-  // New: state for optimizer request
+  // --- Optimizer Config State ---
+  const [config, setConfig] = useState({
+    smooth_window: 5,
+    smooth_poly: 3,
+    dt_hours: 1.0,
+  })
+  const [bounds, setBounds] = useState({
+    I: [0.0, 300.0],
+    T: [15.0, 30.0],
+    flow: [0.0, 1.5],
+    uN: [0.0, 3.0],
+  })
+  const [H_candidates, setH_candidates] = useState([12, 18, 24])
+  const [impact, setImpact] = useState({
+    c_I: 1.0,
+    c_T: 1.0,
+    c_flow: 1.0,
+    c_uN: 1.0,
+  })
+
+  // --- Optimizer Request State ---
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
+  // --- Form Handlers ---
+  const handleConfigChange = (key: keyof typeof config, value: number) => {
+    setConfig(prev => ({ ...prev, [key]: value }))
+  }
+  const handleBoundsChange = (key: keyof typeof bounds, idx: 0 | 1, value: number) => {
+    setBounds(prev => ({ ...prev, [key]: prev[key].map((v, i) => i === idx ? value : v) }))
+  }
+  const handleImpactChange = (key: keyof typeof impact, value: number) => {
+    setImpact(prev => ({ ...prev, [key]: value }))
+  }
+  const handleHChange = (values: number[]) => {
+    setH_candidates(values)
+  }
+
+  // Typed event handlers for inputs
+  const handleConfigInput = (key: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleConfigChange(key, Number(e.target.value))
+  }
+  const handleBoundsInput = (key: keyof typeof bounds, idx: 0 | 1) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleBoundsChange(key, idx, Number(e.target.value))
+  }
+  const handleImpactInput = (key: keyof typeof impact) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleImpactChange(key, Number(e.target.value))
+  }
+
+  // --- Build Payload and Send ---
   async function sendPayload() {
     setLoading(true)
     setError(null)
     setResult(null)
     try {
+      const payload = {
+        ...transformedData,
+        config,
+        bounds,
+        H_candidates,
+        impact,
+      }
       const res = await fetch('/mirco/api/optimizer.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(sample_payload),
+        body: JSON.stringify(payload),
       })
-
       const text = await res.text()
       try {
         const json = JSON.parse(text)
         setResult(json)
       } catch {
-        // server returned plain text
         setResult(text)
       }
     } catch (e: any) {
@@ -297,87 +351,136 @@ const Optimise: React.FC = () => {
     }
   }
 
-  // send on mount once
-  useEffect(() => {
-    sendPayload()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   return (
-    <Box
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <Typography variant='h5' sx={{ mb: 2 }}>
-        Optimise
-      </Typography>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Typography variant='h5' sx={{ mb: 2 }}>Optimise</Typography>
 
+      {/* --- Optimizer Config Form (4 columns, each with 2-row layout) --- */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-        <FormControl fullWidth>
-          
-        </FormControl>
+        {/* Config Column */}
+        <Box sx={{ flex: 1}}>
+          <Typography variant='subtitle1' sx={{ mb: 1 }}>Config</Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(3 / 2))}, 1fr)`, gap: 1 }}>
+            <FormControl>
+              <InputLabel shrink>Window</InputLabel>
+              <OutlinedInput type='number' value={config.smooth_window} onChange={handleConfigInput('smooth_window')} />
+            </FormControl>
+            <FormControl>
+              <InputLabel shrink>Poly</InputLabel>
+              <OutlinedInput type='number' value={config.smooth_poly} onChange={handleConfigInput('smooth_poly')} />
+            </FormControl>
+            <FormControl>
+              <InputLabel shrink>dt (hours)</InputLabel>
+              <OutlinedInput type='number' value={config.dt_hours} onChange={handleConfigInput('dt_hours')} />
+            </FormControl>
+          </Box>
+        </Box>
 
+        {/* Bounds Column */}
+        <Box sx={{ flex: 1.5}}>
+          <Typography variant='subtitle1' sx={{ mb: 1 }}>Bounds</Typography>
+          {(() => {
+            const entries = Object.entries(bounds)
+            const cols = Math.max(1, Math.ceil(entries.length / 2))
+            return (
+              <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 1 }}>
+                {entries.map(([key, val]) => (
+                  <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ minWidth: 30, flexShrink: 0 }}>
+                      <Typography variant='body1' sx={{ textAlign: 'left' }}>{key}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flex: 1 }}>
+                      <FormControl sx={{ width: '50%' }}>
+                        <InputLabel shrink>Min</InputLabel>
+                        <OutlinedInput type='number' value={val[0]} onChange={handleBoundsInput(key as keyof typeof bounds, 0)} label='Min' />
+                      </FormControl>
+                      <FormControl sx={{ width: '50%' }}>
+                        <InputLabel shrink>Max</InputLabel>
+                        <OutlinedInput type='number' value={val[1]} onChange={handleBoundsInput(key as keyof typeof bounds, 1)} label='Max' />
+                      </FormControl>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            )
+          })()}
+        </Box>
+
+        {/* H_candidates Column */}
+        <Box sx={{ flex: 0.75}}>
+          <Typography variant='subtitle1' sx={{ mb: 1 }}>Horizon Candidates</Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(1 / 2))}, 1fr)`, gap: 1 }}>
+            <FormControl>
+              <InputLabel shrink>Hours</InputLabel>
+              <Select
+                multiple
+                value={H_candidates}
+                onChange={e => handleHChange(typeof e.target.value === 'string' ? e.target.value.split(',').map(Number) : e.target.value as number[])}
+                input={<OutlinedInput />}
+                renderValue={selected => (selected as number[]).join(', ')}
+              >
+                {[12, 18, 24, 36, 48].map(val => (
+                  <MenuItem key={val} value={val}>
+                    <Checkbox checked={H_candidates.includes(val)} />
+                    <ListItemText primary={val} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
+
+        {/* Impact Column */}
+        <Box sx={{ flex: 1}}>
+          <Typography variant='subtitle1' sx={{ mb: 1 }}>Impact</Typography>
+          {(() => {
+            const entries = Object.entries(impact)
+            const cols = Math.max(1, Math.ceil(entries.length / 2))
+            return (
+              <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 1 }}>
+                {entries.map(([key, val]) => (
+                  <FormControl key={key}>
+                    <InputLabel shrink>{key}</InputLabel>
+                    <OutlinedInput type='number' value={val} onChange={handleImpactInput(key as keyof typeof impact)} />
+                  </FormControl>
+                ))}
+              </Box>
+            )
+          })()}
+        </Box>
+        <Box sx={{ mb: 2, alignItems: 'center', display: 'flex' }}>
+          <Button variant='contained' color='secondary' onClick={sendPayload} disabled={loading || !transformedData}>
+            Calculate
+          </Button>
+          {error && (
+            <Typography color='error' variant='body2' sx={{ mt: 1 }}>{error}</Typography>
+          )}
+        </Box>
       </Box>
 
-      <Box
-        sx={{
-          flex: 1,
-          width: '100%',
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-        ref={chartRef}
-      >
-        <Box
-          sx={{
-            height: '100%',
-            width: '100%',
-            p: 2,
-            overflow: 'auto',
-          }}
-        >
-          {/* Display optimizer result here */}
+
+      {/* --- Optimizer Result --- */}
+      <Box sx={{ flex: 1, width: '100%', overflow: 'hidden', position: 'relative' }} ref={chartRef}>
+        <Box sx={{ height: '100%', width: '100%', p: 2, overflow: 'auto' }}>
           {loading ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <CircularProgress size={20} />
               <Typography>Requesting optimizer...</Typography>
             </Box>
-          ) : error ? (
-            <Box>
-              <Typography color="error" variant="body2" sx={{ mb: 1 }}>
-                Request failed: {error}
-              </Typography>
-              <Button variant="contained" color="secondary" onClick={sendPayload}>
-                Retry
-              </Button>
-            </Box>
           ) : result ? (
             typeof result === 'string' ? (
-              <Typography variant="body2" component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
-                {result}
-              </Typography>
+              <Typography variant='body2' component='pre' sx={{ whiteSpace: 'pre-wrap' }}>{result}</Typography>
             ) : (
-              <pre style={{ color: theme.palette.text.primary, whiteSpace: 'pre-wrap' }}>
-                {JSON.stringify(result, null, 2)}
-              </pre>
+              <pre style={{ color: theme.palette.text.primary, whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre>
             )
           ) : (
-            <Typography variant="body2">No result yet.</Typography>
+            <Typography variant='body2'>No result yet.</Typography>
           )}
         </Box>
-
         <Tooltip title={'Download Chart as PNG'}>
           <IconButton
             onClick={handleDownload}
-            sx={{
-              position: 'absolute',
-              bottom: 10,
-              right: 10,
-              zIndex: 10,
-            }}
+            sx={{ position: 'absolute', bottom: 10, right: 10, zIndex: 10 }}
             color='secondary'
           >
             <DownloadForOfflineTwoToneIcon fontSize='large' />

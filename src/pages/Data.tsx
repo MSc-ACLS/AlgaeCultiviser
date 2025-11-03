@@ -75,6 +75,27 @@ const Data: React.FC = () => {
           </Box>
         ),
     },
+        {
+      field: 'optimise',
+      headerName: 'Optimise',
+      width: 150,
+      renderCell: (params) =>
+        !params.row.isMetadata && (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
+            <Button
+              variant='contained'
+              size='small'
+              color='secondary'
+              onClick={() => {
+                dispatch(setSelectedDatasetId(params.row.id))
+                navigate('/optimise')
+              }}
+            >
+              Optimisation
+            </Button>
+          </Box>
+        ),
+    },
     {
       field: 'type',
       headerName: 'Type',
