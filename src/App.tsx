@@ -4,8 +4,8 @@ import { ThemeProvider } from '@mui/material/styles'
 import { CssBaseline, AppBar, Toolbar, IconButton, Typography, Tooltip, Box } from '@mui/material'
 import CloudDownloadTwoToneIcon from '@mui/icons-material/CloudDownloadTwoTone'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import DataPage from './pages/DataPage'
-import OptimisePage from './pages/OptimisePage'
+import Data from './pages/Data'
+import Optimise from './pages/Optimise'
 import NavigationTabs from './components/NavigationTabs'
 import { selectTheme, LIGHT_THEME, DARK_THEME } from './theme/selectors'
 import ThemeToggleButton from './components/ThemeToggleButton'
@@ -59,11 +59,11 @@ const App: React.FC = () => {
             </Box>
 
             <Box sx={{ flexGrow: 1 }} />
-            <Tooltip title='Download Data'>
+            {/* <Tooltip title='Download Data'>
               <IconButton color='inherit' disabled>
                 <CloudDownloadTwoToneIcon />
               </IconButton>
-            </Tooltip>
+            </Tooltip> */}
           </Toolbar>
 
           <NavigationTabs />
@@ -80,10 +80,10 @@ const App: React.FC = () => {
           }}
         >
           <Routes>
-            <Route path='/' element={<DataPage />} />
+            <Route path='/' element={<Data />} />
             <Route path='/analyse' element={<AnalyseTimeseries />} />
             <Route path='/analyse/correlations' element={<AnalyseCorrelations />} />
-            <Route path='/optimise' element={<OptimisePage />} />
+            <Route path='/optimise' element={<Optimise />} />
           </Routes>
         </Box>
       </Router>

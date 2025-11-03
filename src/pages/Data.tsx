@@ -9,7 +9,7 @@ import Papa from 'papaparse'
 import { parseDataset } from '../utils/parseDataset'
 import { parse, isValid } from 'date-fns'
 
-const DataPage: React.FC = () => {
+const Data: React.FC = () => {
   const datasets = useSelector((state: RootState) => state.data.datasets)
   const selectedDatasetId = useSelector<RootState, string | number | null>(
     (state) => state.data.selectedDatasetId
@@ -423,4 +423,4 @@ const DataPage: React.FC = () => {
   )
 }
 
-export default DataPage
+export default Data

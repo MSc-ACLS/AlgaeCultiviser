@@ -37,7 +37,7 @@ const NavigationTabs: React.FC = () => {
       <Tabs value={selectedTab} onChange={handleChange} centered>
         <Tab label="Data" />
         <Tab label="Analyse" />
-        <Tab label="Optimise" disabled />
+        <Tab label="Optimise" />
       </Tabs>
     </Box>
   )
