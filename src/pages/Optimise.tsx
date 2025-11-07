@@ -390,10 +390,11 @@ const Optimise: React.FC = () => {
         impact,
       }
       console.log('Sending payload:', payload)
-      const res = await fetch('/mirco/api/optimizer.php', {
+      const res = await fetch('https://msc-acls.github.io/mirco/api/optimizer.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'User-Agent': 'AlgaeCultiviser-Frontend'
         },
         body: JSON.stringify(payload),
       })
