@@ -390,12 +390,15 @@ const Optimise: React.FC = () => {
         impact,
       }
       console.log('Sending payload:', payload)
-      // Use local API for development, remote API for production
       const apiUrl = window.location.hostname === 'localhost'
-        ? '/mirco/api/optimizer.php'
+        ? '/mirco/api/optimizer.php'  // Local development
         : 'https://acls.ulozezoz.myhostpoint.ch/mirco/api/optimizer.php'
+      
+      // Use CORS proxy in production
+      const corsProxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(apiUrl)
+      const finalUrl = window.location.hostname === 'localhost' ? apiUrl : corsProxyUrl
 
-      const res = await fetch(apiUrl, {
+      const res = await fetch(finalUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
