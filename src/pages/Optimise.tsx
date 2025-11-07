@@ -20,8 +20,10 @@ const Optimise: React.FC = () => {
 
   // Transform data into the required format
   const transformedData = selectedDataset ? transformDataForOptimiser(selectedDataset) : null
-  
+
   console.log('Transformed Data:', transformedData)
+  
+  // Transformed data is available for debugging when needed
   
   const dispatch = useDispatch()
   const chartRef = useRef<HTMLDivElement>(null)
@@ -35,8 +37,7 @@ const Optimise: React.FC = () => {
       return null;
     }
 
-    console.log('Dataset headers:', dataset.data[0])
-    console.log('Metadata headers:', dataset.metadata.data[0])
+  // dataset and metadata headers are available if needed for debugging
 
     const headers = dataset.data[0];
     const timeIndex = headers.indexOf('timestring');
@@ -57,8 +58,21 @@ const Optimise: React.FC = () => {
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
 
     const metadataData = dataset.metadata.data.slice(2);  // Skip headers and units
-    const metadataTimeIndex = dataset.metadata.data[0].indexOf('timestring');
-    const trockenmassIndex = dataset.metadata.data[0].indexOf('Trockenmasse');
+    const metadataTimeIndex = dataset.metadata.data[0].indexOf('timestring')
+    
+  // Determine reactor type and corresponding column names
+  const isAgroscope = dataset.metadata.data[0].includes('NH4-N')
+  const dryWeightColumn = isAgroscope ? 'DW' : 'Trockenmasse'
+  // ZHAW uses the column name "N added"
+  const nh4nColumn = isAgroscope ? 'NH4-N' : 'N added'
+    
+    const dryWeightIndex = dataset.metadata.data[0].indexOf(dryWeightColumn)
+    const nh4nIndex = dataset.metadata.data[0].indexOf(nh4nColumn)
+
+    if (dryWeightIndex === -1) {
+      console.warn(`Could not find ${dryWeightColumn} column in metadata headers`)
+      return null;
+    }
 
     // Helper function for better spline interpolation
     function getCubicSplinePoints(points: [number, number][], step = 0.05) {
@@ -93,20 +107,19 @@ const Optimise: React.FC = () => {
       }
     }
 
-    // Build raw metadata points (timestamp in ms, value)
+    // Build metadata maps for dry weight and NH4-N
     let metaPoints: [number, number][] = []
+    const nh4nMap = new Map<string, number>();
+    let nh4nFoundCount = 0;
+
     metadataData.forEach((row: any[]) => {
       const timeStr = row[metadataTimeIndex]
-      const val = parseFloat(row[trockenmassIndex])
+      const dryWeightVal = parseFloat(row[dryWeightIndex])
+      const nh4nVal = nh4nIndex !== -1 ? parseFloat(row[nh4nIndex]) : 0
       
       // More detailed validation
       if (!timeStr) {
         console.warn('Missing timestamp in metadata row:', row)
-        return
-      }
-      
-      if (isNaN(val)) {
-        console.warn('Invalid Trockenmasse value in metadata row:', row)
         return
       }
       
@@ -116,7 +129,31 @@ const Optimise: React.FC = () => {
           console.warn('Invalid date string in metadata:', timeStr)
           return
         }
-        metaPoints.push([mdDate.getTime(), val])
+
+        // Handle dry weight
+        if (!isNaN(dryWeightVal)) {
+          metaPoints.push([mdDate.getTime(), dryWeightVal])
+        } else {
+          console.warn(`Invalid ${dryWeightColumn} value in metadata row:`, row)
+        }
+
+        // Handle NH4-N
+        if (nh4nIndex !== -1) {
+          // NH4-N value processed (counted below if valid)
+          
+          if (!isNaN(nh4nVal)) {
+            // Round to nearest hour for NH4-N
+            const roundedTime = Math.round(mdDate.getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000)
+            const roundedDate = new Date(roundedTime)
+            const key = formatLocalKey(roundedDate)
+            nh4nMap.set(key, nh4nVal)
+            nh4nFoundCount++
+          }
+        } else {
+          if (nh4nFoundCount === 0) {
+            console.warn('NH4-N column not found')
+          }
+        }
       } catch (error) {
         console.warn('Error parsing date:', timeStr, error)
       }
@@ -160,11 +197,7 @@ const Optimise: React.FC = () => {
       }
     })
 
-    // Debug: show metadata points
-    console.debug('Metadata points:', metaPoints.map(([t, v]) => ({
-      time: new Date(t).toISOString(),
-      value: v
-    })))
+    // metadata points available in `metaPoints` if inspection is necessary
 
     let spline: any = null
     let splineMin = 0
@@ -233,29 +266,23 @@ const Optimise: React.FC = () => {
       if (!usedMetaExact && !usedSpline && X < lastX) X = lastX
       lastX = X
 
+      // Get NH4-N value for this time or use 0
+      const uN = nh4nMap.get(formattedTime) || 0
+
       return {
         time: formattedTime,
         X,
         I,
         T: parseFloat(row[tempIndex]),
         flow: parseFloat(row[flowIndex]),
-        uN: 0,
+        uN,
       }
     })
 
     // use built as processedData
     const finalData = built
 
-    // Debug info to help diagnose spline/X issues
-    try {
-      console.debug('Optimise: metadata headers', dataset.metadata.data[0])
-      console.debug('Optimise: metadata indices time/trocken', metadataTimeIndex, trockenmassIndex)
-      console.debug('Optimise: metaPoints sample', metaPoints.slice(0, 10).map(([t, v]) => [new Date(t).toString(), v]))
-  console.debug('Optimise: first processedData times', processedData.slice(0, 5).map((r: any) => r[timeIndex]))
-      console.debug('Optimise: column indices par1/par2/temp/flow', par1Index, par2Index, tempIndex, flowIndex)
-    } catch (e) {
-      // ignore
-    }
+    // debug/diagnostic logging removed to reduce console noise
 
     return {
       data: finalData,
@@ -362,6 +389,7 @@ const Optimise: React.FC = () => {
         H_candidates,
         impact,
       }
+      console.log('Sending payload:', payload)
       const res = await fetch('/mirco/api/optimizer.php', {
         method: 'POST',
         headers: {
@@ -576,7 +604,8 @@ const Optimise: React.FC = () => {
                     }
                   ]
                 })()}
-                margin={{ top: 20, right: 140, bottom: 50, left: 60 }}
+                margin={{ top: 20, right: 240, bottom: 60, left: 60 }}
+
                 xScale={{
                   type: 'linear',
                   min: 'auto',
@@ -610,7 +639,7 @@ const Optimise: React.FC = () => {
                   tickSize: 5,
                   tickPadding: 5,
                   tickRotation: 0,
-                  legend: 'Value',
+                  legend: 'Value (normalised)',
                   legendOffset: -40,
                   legendPosition: 'middle'
                 }}
