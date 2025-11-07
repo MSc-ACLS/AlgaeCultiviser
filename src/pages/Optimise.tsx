@@ -390,12 +390,17 @@ const Optimise: React.FC = () => {
         impact,
       }
       console.log('Sending payload:', payload)
-      const res = await fetch('https://msc-acls.github.io/mirco/api/optimizer.php', {
+      // Use local API for development, remote API for production
+      const apiUrl = window.location.hostname === 'localhost'
+        ? '/mirco/api/optimizer.php'
+        : 'https://acls.ulozezoz.myhostpoint.ch/mirco/api/optimizer.php'
+
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'AlgaeCultiviser-Frontend'
         },
+        credentials: 'include',
         body: JSON.stringify(payload),
       })
       const text = await res.text()
