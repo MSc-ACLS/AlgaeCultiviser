@@ -40,7 +40,7 @@ const Data: React.FC = () => {
   }
 
   const columns: GridColDef[] = [
-    { field: 'filename', headerName: 'Filename', width: 200 },
+    { field: 'filename', headerName: 'Filename', width: 400 },
     { field: 'columns', headerName: '# of Columns', width: 150 },
     { field: 'rows', headerName: '# of Rows', width: 150 },
     {

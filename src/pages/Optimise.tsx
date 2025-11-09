@@ -330,6 +330,8 @@ const Optimise: React.FC = () => {
 
   type OptimiserResult = {
     ok: boolean
+    detail: string
+    trace: string
     theta: number[]
     chosen_H: number
     report: {
@@ -538,6 +540,23 @@ const Optimise: React.FC = () => {
         ) : result ? (
           typeof result === 'string' ? (
             <Typography variant='body2' component='pre' sx={{ whiteSpace: 'pre-wrap', p: 2 }}>{result}</Typography>
+          ) : !result.ok ? (
+            <Box sx={{ p: 2 }}>
+              <Typography color="error" variant="h6" sx={{ mb: 1 }}>Optimization Error</Typography>
+              <Typography color="error" variant="body1" sx={{ mb: 2 }}>{result.detail || 'Unknown error'}</Typography>
+              {result.trace && (
+                <Typography component="pre" sx={{ 
+                  whiteSpace: 'pre-wrap', 
+                  bgcolor: theme.palette.background.paper,
+                  p: 2,
+                  borderRadius: 1,
+                  border: `1px solid ${theme.palette.divider}`,
+                  fontSize: '0.875rem'
+                }}>
+                  {result.trace}
+                </Typography>
+              )}
+            </Box>
           ) : (
             <Box sx={{ height: '100%', width: '100%' }}>
               <ResponsiveLineCanvas
