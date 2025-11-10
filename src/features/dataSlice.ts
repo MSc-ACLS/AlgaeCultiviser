@@ -25,31 +25,6 @@ const initialState: DataState = {
   selectedDatasetId: null
 }
 
-export const loadInitialData = createAsyncThunk('data/loadInitialData', async () => {
-  if (window.location.hostname !== 'localhost') {
-    return []
-  }
-
-  const response = await fetch(`${import.meta.env.BASE_URL}data/dataagro24_run1.csv`)
-  const fileContent = await response.text()
-  let parsedData: any[] = []
-  Papa.parse(fileContent, {
-    complete: (result) => {
-      parsedData = result.data as any[]
-    },
-    header: false,
-  })
-
-  const parsedDataset = parseDataset(parsedData, 'agroscope', 'dd.MM.yyyy HH:mm:ss.SSS')
-
-  return [{
-    id: 0,
-    data: parsedDataset,
-    filename: 'dataagro24_run1.csv',
-    type: 'agroscope' as 'agroscope'
-  }]
-})
-
 const dataSlice = createSlice({
   name: "data",
   initialState,
@@ -75,11 +50,6 @@ const dataSlice = createSlice({
       state.selectedDatasetId = action.payload
     },
   },
-  extraReducers: (builder) => {
-    builder.addCase(loadInitialData.fulfilled, (state, action) => {
-      state.datasets = action.payload
-    })
-  }
 })
 
 export const { addDataset, removeDataset, setSelectedDatasetId } = dataSlice.actions

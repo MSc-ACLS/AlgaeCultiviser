@@ -75,7 +75,7 @@ const Data: React.FC = () => {
           </Box>
         ),
     },
-        {
+    {
       field: 'optimise',
       headerName: 'Optimise',
       width: 150,
@@ -110,6 +110,61 @@ const Data: React.FC = () => {
             />
           </Box>
         ),
+    },
+    {
+      field: 'download',
+      headerName: 'Download',
+      width: 120,
+      renderCell: (params: any) => {
+        // params.id may be like 1 or '1_meta'
+        const id = params.row.isMetadata ? `${params.row.id}` : params.row.id
+        const onClick = () => {
+          // find dataset or metadata
+          const rawId = String(params.row.id)
+          let ds: any = null
+          if (rawId.includes('_meta')) {
+            const mainId = parseInt(rawId.split('_')[0], 10)
+            const main = datasets.find((d: any) => d.id === mainId)
+            ds = main?.metadata || null
+          } else {
+            ds = datasets.find((d: any) => d.id === params.row.id) || null
+          }
+
+          if (!ds) {
+            setSnackbar({ message: 'Dataset not found', open: true })
+            return
+          }
+
+          try {
+            const csv = Papa.unparse(ds.data)
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = ds.filename || 'dataset.csv'
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+          } catch (e) {
+            console.error('Error creating CSV:', e)
+            setSnackbar({ message: 'Failed to create CSV', open: true })
+          }
+        }
+
+        return (
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
+            <Button
+              variant='contained'
+              size='small'
+              color='secondary'
+              onClick={onClick}
+            >
+              CSV
+            </Button>
+          </Box>
+        )
+      }
     },
     // {
     //   field: 'compare',

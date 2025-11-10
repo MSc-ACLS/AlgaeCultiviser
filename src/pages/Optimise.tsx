@@ -46,11 +46,11 @@ const Optimise: React.FC = () => {
       console.warn('Could not find timestring column in data headers')
       return null;
     }
-  // compute column indices once
-  const par1Index = headers.indexOf('PAR.1');
-  const par2Index = headers.indexOf('PAR.2');
-  const tempIndex = headers.indexOf('TEMPERATURE');
-  const flowIndex = headers.indexOf('FLOW.OF.ALGAE');
+  // column indices for PAR/T/flow will be computed after reactor type is known
+  let par1Index = -1
+  let par2Index = -1
+  let tempIndex = -1
+  let flowIndex = -1
     const data = dataset.data.slice(2);  // Skip headers and units
 
     // Helper to format a Date into local 'YYYY-MM-DD HH:mm:ss' string
@@ -61,13 +61,29 @@ const Optimise: React.FC = () => {
     const metadataTimeIndex = dataset.metadata.data[0].indexOf('timestring')
     
   // Determine reactor type and corresponding column names
-  const isAgroscope = dataset.metadata.data[0].includes('NH4-N')
+  console.log('Dataset type:', dataset.type)
+  console.log('Dataset:', dataset)
+
+  const isAgroscope = dataset.type === 'agroscope'
   const dryWeightColumn = isAgroscope ? 'DW' : 'Trockenmasse'
   // ZHAW uses the column name "N added"
   const nh4nColumn = isAgroscope ? 'NH4-N' : 'N added'
     
     const dryWeightIndex = dataset.metadata.data[0].indexOf(dryWeightColumn)
     const nh4nIndex = dataset.metadata.data[0].indexOf(nh4nColumn)
+
+    // Determine data column indices for PAR, temperature and flow depending on reactor type
+    if (isAgroscope) {
+      par1Index = headers.indexOf('PAR')
+      par2Index = -1
+      tempIndex = headers.indexOf('Tempterature')
+      flowIndex = headers.indexOf('CO2')
+    } else {
+      par1Index = headers.indexOf('PAR.1')
+      par2Index = headers.indexOf('PAR.2')
+      tempIndex = headers.indexOf('TEMPERATURE')
+      flowIndex = headers.indexOf('FLOW.OF.ALGAE')
+    }
 
     if (dryWeightIndex === -1) {
       console.warn(`Could not find ${dryWeightColumn} column in metadata headers`)
@@ -229,8 +245,19 @@ const Optimise: React.FC = () => {
       const timeStr = new Date(row[timeIndex]);
       const formattedTime = formatLocalKey(timeStr);
 
-      // Calculate average PAR (I)
-      const I = (parseFloat(row[par1Index]) + parseFloat(row[par2Index])) / 2;
+      // Calculate PAR (I). Agroscope has a single 'PAR' column; ZHAW has PAR.1 and PAR.2
+      let I = 0
+      if (isAgroscope) {
+        const p = parseFloat(row[par1Index])
+        I = isNaN(p) ? 0 : p
+      } else {
+        const p1 = parseFloat(row[par1Index])
+        const p2 = parseFloat(row[par2Index])
+        const vals: number[] = []
+        if (!isNaN(p1)) vals.push(p1)
+        if (!isNaN(p2)) vals.push(p2)
+        I = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
+      }
 
       // Determine X: prefer exact metadata (rounded to hour), else spline if available and in range,
       // else keep previous value. Only enforce non-decreasing when we're carrying forward the last
