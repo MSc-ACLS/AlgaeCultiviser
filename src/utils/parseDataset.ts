@@ -59,7 +59,6 @@ export const parseDataset = (
         const prevPH = Number(parsedData[i - 1][phIndex])
         const currPH = Number(parsedData[i][phIndex])
         if (currPH < prevPH) {
-          console.log('currPH < prevPH, calculating CO2')
           const prevDate = new Date(parsedData[i - 1][0])
           const currDate = new Date(parsedData[i][0])
           const minutes = Math.abs((currDate.getTime() - prevDate.getTime()) / 60000)

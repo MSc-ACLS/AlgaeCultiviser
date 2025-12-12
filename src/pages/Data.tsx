@@ -221,18 +221,26 @@ const Data: React.FC = () => {
   }, [selectionModel, dispatch])
 
   const getColumnStats = (columnData: any[]) => {
-    const numericData = columnData
-      .map((val) => parseFloat(val))
-      .filter((val) => !isNaN(val))
+    let count = 0
+    let sum = 0
+    let min = Infinity
+    let max = -Infinity
 
-    const count = numericData.length
+    for (let i = 0; i < columnData.length; i++) {
+      const v = parseFloat(columnData[i])
+      if (!isNaN(v)) {
+        count++
+        sum += v
+        if (v < min) min = v
+        if (v > max) max = v
+      }
+    }
+
     if (count === 0) {
       return { count: 0, mean: NaN, min: NaN, max: NaN }
     }
 
-    const mean = numericData.reduce((acc, val) => acc + val, 0) / count
-    const min = Math.min(...numericData)
-    const max = Math.max(...numericData)
+    const mean = sum / count
     return { count, mean, min, max }
   }
 

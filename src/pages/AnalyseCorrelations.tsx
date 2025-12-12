@@ -81,9 +81,18 @@ const AnalyseCorrelations: React.FC = () => {
     const rDenominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY))
     const rValue = rDenominator !== 0 ? rNumerator / rDenominator : 0
 
-    const xValues = points.map((point) => point.x)
-    const xMin = Math.min(...xValues)
-    const xMax = Math.max(...xValues)
+    // compute xMin/xMax in a single pass to avoid spreading large arrays into Math.min/Math.max
+    let xMin = Infinity
+    let xMax = -Infinity
+    for (let i = 0; i < points.length; i++) {
+      const v = points[i].x
+      if (!isNaN(v)) {
+        if (v < xMin) xMin = v
+        if (v > xMax) xMax = v
+      }
+    }
+    if (!isFinite(xMin)) xMin = 0
+    if (!isFinite(xMax)) xMax = 1
 
     const regressionLine = [
       { x: xMin, y: slope * xMin + intercept },
@@ -117,17 +126,31 @@ const AnalyseCorrelations: React.FC = () => {
   const axisRanges = useMemo(() => {
     if (!scatterData.length) return { xMin: 0, xMax: 1, yMin: 0, yMax: 1 }
 
-    const allXValues = scatterData[0].data.map((point) => point.x)
-    const allYValues = scatterData[0].data.map((point) => point.y)
-
-
-
-    return {
-      xMin: Math.min(...allXValues),
-      xMax: Math.max(...allXValues),
-      yMin: Math.min(...allYValues),
-      yMax: Math.max(...allYValues),
+    // compute min/max in single pass to avoid spreading large arrays
+    let xMin = Infinity
+    let xMax = -Infinity
+    let yMin = Infinity
+    let yMax = -Infinity
+    const pts = scatterData[0].data
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i]
+      const xv = p.x
+      const yv = p.y
+      if (!isNaN(xv)) {
+        if (xv < xMin) xMin = xv
+        if (xv > xMax) xMax = xv
+      }
+      if (!isNaN(yv)) {
+        if (yv < yMin) yMin = yv
+        if (yv > yMax) yMax = yv
+      }
     }
+    if (!isFinite(xMin)) xMin = 0
+    if (!isFinite(xMax)) xMax = 1
+    if (!isFinite(yMin)) yMin = 0
+    if (!isFinite(yMax)) yMax = 1
+
+    return { xMin, xMax, yMin, yMax }
   }, [scatterData])
 
   const theme = useTheme()

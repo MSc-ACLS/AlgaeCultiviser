@@ -97,38 +97,44 @@ const AnalyseTimeseries: React.FC = () => {
 
   const normaliseData = (data: any[]) => {
     const normalisedData = data.map((variableData: { id: string; data: { x: Date; y: number }[] }) => {
-      const yValues = variableData.data.map((point) => point.y).filter((y) => y !== null)
-      const min = Math.min(...yValues)
-      const max = Math.max(...yValues)
-
-      if (yValues.length < 2 || min === max) {
-        return {
-          id: variableData.id,
-          data: variableData.data.map((point) => ({
-            x: point.x,
-            originalY: point.y,
-            y: 0.5,
-            serieId: variableData.id,
-          })),
+      let min = Infinity
+      let max = -Infinity
+      let count = 0
+      for (let i = 0; i < variableData.data.length; i++) {
+        const p = variableData.data[i]
+        const y = p?.y
+        if (y !== null && y !== undefined && !isNaN(y)) {
+          if (y < min) min = y
+          if (y > max) max = y
+          count++
         }
       }
 
-      return {
-        id: variableData.id,
-        data: variableData.data.map((point) => {
-          if (!point.x || isNaN(point.x.getTime()) || point.y === null) {
-            console.warn(`Invalid normalised point skipped: x=${point.x}, y=${point.y}`)
-            return null
-          }
+      const rows: any[] = []
 
-          return {
-            x: point.x,
-            originalY: point.y,
-            y: (point.y - min) / (max - min),
-            serieId: variableData.id,
+      if (count < 2 || min === max || !isFinite(min) || !isFinite(max)) {
+        for (let i = 0; i < variableData.data.length; i++) {
+          const point = variableData.data[i]
+          if (!point || !point.x || isNaN(point.x.getTime())) {
+            console.warn(`Invalid normalised point skipped: x=${point?.x}, y=${point?.y}`)
+            continue
           }
-        }).filter((point) => point !== null),
+          rows.push({ x: point.x, originalY: point.y, y: 0.5, serieId: variableData.id })
+        }
+      } else {
+        const denom = max - min
+        for (let i = 0; i < variableData.data.length; i++) {
+          const point = variableData.data[i]
+          if (!point || !point.x || isNaN(point.x.getTime()) || point.y === null || point.y === undefined || isNaN(point.y)) {
+            console.warn(`Invalid normalised point skipped: x=${point?.x}, y=${point?.y}`)
+            continue
+          }
+          const yNorm = (point.y - min) / denom
+          rows.push({ x: point.x, originalY: point.y, y: yNorm, serieId: variableData.id })
+        }
       }
+
+      return { id: variableData.id, data: rows }
     })
 
     return normalisedData
@@ -699,8 +705,13 @@ const AnalyseTimeseries: React.FC = () => {
     const spline = new CubicSpline(xs, ys)
 
     // Generate fitted points at regular intervals
-    const minX = Math.min(...xs)
-    const maxX = Math.max(...xs)
+    let minX = Infinity
+    let maxX = -Infinity
+    for (let i = 0; i < xs.length; i++) {
+      const v = xs[i]
+      if (v < minX) minX = v
+      if (v > maxX) maxX = v
+    }
     const fitted: [number, number][] = []
     for (let x = minX; x <= maxX; x += step * (maxX - minX)) {
       fitted.push([x, spline.at(x)])
