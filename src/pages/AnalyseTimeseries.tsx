@@ -278,6 +278,12 @@ const AnalyseTimeseries: React.FC = () => {
         const isCursorLeft = point.x < 100
         const originalY = (point.data as any).originalY
 
+        const formatVal = (v: any) => {
+          if (v === null || v === undefined) return 'N/A'
+          const n = Number(v)
+          return isNaN(n) ? String(v) : n.toFixed(2)
+        }
+
         const variableIndex = selectedDataset?.data[0].indexOf(point.serieId)
         const unit =
           variableIndex !== undefined && variableIndex >= 0
@@ -300,7 +306,7 @@ const AnalyseTimeseries: React.FC = () => {
             <Typography variant="body2">
               Time: {new Date(point.data.x).toLocaleString()}
             </Typography>
-            <Typography variant="body2">Value: {originalY?.toString()}</Typography>
+            <Typography variant="body2">Value: {formatVal(originalY)}</Typography>
           </Box>
         )
       },
@@ -422,6 +428,12 @@ const AnalyseTimeseries: React.FC = () => {
         const isCursorLow = mouseY > 100
         const isCursorLeft = mouseX < 100
 
+        const formatVal = (v: any) => {
+          if (v === null || v === undefined) return 'N/A'
+          const n = Number(v)
+          return isNaN(n) ? String(v) : n.toFixed(2)
+        }
+
         const tooltipContent = (
           <Box
             sx={{
@@ -439,7 +451,7 @@ const AnalyseTimeseries: React.FC = () => {
               Time: {(closestPoint as MetadataPoint).x.toLocaleString()}
             </Typography>
             <Typography color='black' variant="body2">
-              Value: {(closestPoint as MetadataPoint).originalY.toPrecision(3)}
+              Value: {formatVal((closestPoint as MetadataPoint).originalY)}
             </Typography>
           </Box>
         )

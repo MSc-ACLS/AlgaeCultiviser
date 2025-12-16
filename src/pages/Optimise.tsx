@@ -662,23 +662,36 @@ const Optimise: React.FC = () => {
                   stacked: false,
                   reverse: false
                 }}
-                tooltip={({ point }: PointTooltipProps) => (
-                  <Box
-                    sx={{
-                      background: theme.palette.background.paper,
-                      padding: '6px 12px',
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 1,
-                    }}
-                  >
-                    <Typography variant="body2" color="text.primary">
-                      {point.serieId}: {Number(point.data.y).toFixed(2)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Hour: {Number(point.data.x).toFixed(0)}
-                    </Typography>
-                  </Box>
-                )}
+                tooltip={({ point }: PointTooltipProps) => {
+                  const isCursorLow = (point as any).y > 100
+                  const isCursorLeft = (point as any).x < 100
+                  const originalY = (point.data as any)?.originalY ?? point.data.y
+                  const formatVal = (v: any) => {
+                    if (v === null || v === undefined) return 'N/A'
+                    const n = Number(v)
+                    return isNaN(n) ? String(v) : n.toFixed(2)
+                  }
+
+                  return (
+                    <Box
+                      sx={{
+                        background: (point.serieColor as string) || theme.palette.background.paper,
+                        borderRadius: '8px',
+                        padding: '8px',
+                        textAlign: 'left',
+                        transform: isCursorLow ? (isCursorLeft ? 'translateX(+50%)' : undefined) : (isCursorLeft ? 'translate(+50%,+150%)' : 'translateY(+150%)'),
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        {point.serieId}
+                      </Typography>
+                      <Typography variant="body2">
+                        Hour: {Number(point.data.x).toFixed(0)}
+                      </Typography>
+                      <Typography variant="body2">Value: {formatVal(originalY)}</Typography>
+                    </Box>
+                  )
+                }}
                 axisLeft={{
                   tickSize: 5,
                   tickPadding: 5,
