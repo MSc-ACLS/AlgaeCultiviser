@@ -2,11 +2,11 @@ import { Box, Typography, useTheme } from '@mui/material'
 
 interface OptimiserMetricsBoxProps {
     horizon: number
-    xFinal: number
+    impact_total: number
     gap: number
 }
 
-const OptimiserMetricsBox: React.FC<OptimiserMetricsBoxProps> = ({ horizon, xFinal, gap }) => {
+const OptimiserMetricsBox: React.FC<OptimiserMetricsBoxProps> = ({ horizon, impact_total, gap }) => {
     const theme = useTheme()
 
     const OptimiserMetrics = [
@@ -16,13 +16,13 @@ const OptimiserMetricsBox: React.FC<OptimiserMetricsBoxProps> = ({ horizon, xFin
             unit: 'hours'
         },
         {
-            name: 'Final Biomass',
-            value: xFinal,
-            unit: 'g/L'
+            name: 'Total Impact',
+            value: impact_total/1000,
+            unit: 'kg CO<sub>2</sub>eq'
         },
         {
             name: 'Saved CO<sub>2</sub>',
-            value: gap,
+            value: -gap,
             unit: 'g/L'
         }
     ]
@@ -48,7 +48,7 @@ const OptimiserMetricsBox: React.FC<OptimiserMetricsBoxProps> = ({ horizon, xFin
                     variant='body2'
                     component='div'
                 >
-                    <span dangerouslySetInnerHTML={{ __html: metric.name }} />: {metric.name === 'Horizon' ? metric.value :  metric.value.toFixed(2)} {metric.unit}
+                    <span dangerouslySetInnerHTML={{ __html: metric.name }} />: {metric.name === 'Horizon' ? metric.value :  metric.value.toFixed(2)} <span dangerouslySetInnerHTML={{ __html: metric.unit }} /> 
                 </Typography>
             ))}
         </Box>

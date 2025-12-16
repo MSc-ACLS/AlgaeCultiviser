@@ -30,6 +30,8 @@ const SustainabilityBox: React.FC<SustainabilityBoxProps> = ({ type, durationDay
     const realCo2Factor = co2Factors.find(f => f.name === 'CO2')
     const realCo2CO2eq = co2Sum * 0.00196 * (type === 'zhaw' ? 10 : 1) * (realCo2Factor ? realCo2Factor.kco2eq : 0)
 
+    console.log('Induced C02:', co2Sum * 0.00196 * (type === 'zhaw' ? 10 : 1) )
+
     // Ammonium Sulfate
     const ammoniumSulfateFactor = co2Factors.find(f => f.name === 'Ammonium Sulfate')
     const ammoniumSulfateInput = reactorFactor.nutrients.N_total_kg_per_a * 4.716 * durationDays / 365

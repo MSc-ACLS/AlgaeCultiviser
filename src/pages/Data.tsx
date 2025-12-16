@@ -1,7 +1,7 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState, AppDispatch } from '../store'
 import { addDataset, removeDataset, setSelectedDatasetId } from '../features/dataSlice'
-import { Button, Typography, Box, Tooltip, Checkbox, Alert, Snackbar, Chip } from '@mui/material'
+import { Button, Typography, Box, Tooltip, Alert, Snackbar, Chip } from '@mui/material'
 import { DataGrid, GridColDef, GridRowSelectionModel } from '@mui/x-data-grid'
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -237,11 +237,11 @@ const Data: React.FC = () => {
     }
 
     if (count === 0) {
-      return { count: 0, mean: NaN, min: NaN, max: NaN }
+      return { count: 0, mean: NaN, min: NaN, max: NaN, total: NaN }
     }
 
     const mean = sum / count
-    return { count, mean, min, max }
+    return { count, mean, min, max, total: sum }
   }
 
   const formatNumber = (num: number) => {
@@ -269,7 +269,7 @@ const Data: React.FC = () => {
           (value) => typeof value === 'string' && isValid(parse(value, 'dd.MM.yyyy HH:mm:ss.SSS', new Date()))
         )
 
-        const { count, mean, min, max } = getColumnStats(
+        const { count, mean, min, max, total } = getColumnStats(
           isDateColumn ? columnData.map((value) => parse(value, 'dd.MM.yyyy HH:mm:ss.SSS', new Date()).getTime()) : columnData
         )
 
@@ -316,6 +316,16 @@ const Data: React.FC = () => {
                     : isDateColumn
                     ? new Date(max).toLocaleString()
                     : formatNumber(max)}
+                </td>
+              </tr>
+              <tr>
+                <td>Total:</td>
+                <td>
+                  {isNaN(total)
+                    ? 'N/A'
+                    : isDateColumn
+                    ? 'N/A'
+                    : formatNumber(total)}
                 </td>
               </tr>
             </tbody>

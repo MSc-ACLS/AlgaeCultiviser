@@ -1,13 +1,11 @@
-import { Box, Typography, FormControl, Select, MenuItem, SelectChangeEvent, Tooltip, IconButton, Button, CircularProgress } from '@mui/material'
+import { Box, Typography, FormControl,Tooltip, IconButton, Button, CircularProgress } from '@mui/material'
 import InputLabel from '@mui/material/InputLabel'
 import OutlinedInput from '@mui/material/OutlinedInput'
-import Checkbox from '@mui/material/Checkbox'
-import ListItemText from '@mui/material/ListItemText'
 import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
 import { ResponsiveLineCanvas, PointTooltipProps } from '@nivo/line'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../store'
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import CubicSpline from 'cubic-spline'
 import { useTheme } from '@mui/material/styles'
 import { handleDownloadChart } from '../utils/downloadChart'
@@ -19,15 +17,15 @@ const Optimise: React.FC = () => {
   const selectedDataset = selectedDatasetId !== null ? datasets.find(dataset => dataset.id === selectedDatasetId) : null
 
   // Transform data into the required format
-  const transformedData = selectedDataset ? transformDataForOptimiser(selectedDataset) : null
+  const transformedSeries = selectedDataset ? transformDataForOptimiser(selectedDataset) : null
 
-  console.log('Transformed Data:', transformedData)
-  
+  console.log('Transformed Data:', transformedSeries)
+
   // Transformed data is available for debugging when needed
-  
+
   const dispatch = useDispatch()
   const chartRef = useRef<HTMLDivElement>(null)
-  
+
   const currentTheme = useSelector((state: RootState) => state.theme)
 
   // Function to transform the data into the required format
@@ -37,20 +35,20 @@ const Optimise: React.FC = () => {
       return null;
     }
 
-  // dataset and metadata headers are available if needed for debugging
+    // dataset and metadata headers are available if needed for debugging
 
     const headers = dataset.data[0];
     const timeIndex = headers.indexOf('timestring');
-    
+
     if (timeIndex === -1) {
       console.warn('Could not find timestring column in data headers')
       return null;
     }
-  // column indices for PAR/T/flow will be computed after reactor type is known
-  let par1Index = -1
-  let par2Index = -1
-  let tempIndex = -1
-  let flowIndex = -1
+    // column indices for PAR/T/flow will be computed after reactor type is known
+    let par1Index = -1
+    let par2Index = -1
+    let tempIndex = -1
+    //let flowIndex = -1
     const data = dataset.data.slice(2);  // Skip headers and units
 
     // Helper to format a Date into local 'YYYY-MM-DD HH:mm:ss' string
@@ -59,16 +57,16 @@ const Optimise: React.FC = () => {
 
     const metadataData = dataset.metadata.data.slice(2);  // Skip headers and units
     const metadataTimeIndex = dataset.metadata.data[0].indexOf('timestring')
-    
-  // Determine reactor type and corresponding column names
-  console.log('Dataset type:', dataset.type)
-  console.log('Dataset:', dataset)
 
-  const isAgroscope = dataset.type === 'agroscope'
-  const dryWeightColumn = isAgroscope ? 'DW' : 'Trockenmasse'
-  // ZHAW uses the column name "N added"
-  const nh4nColumn = isAgroscope ? 'NH4-N' : 'N added'
-    
+    // Determine reactor type and corresponding column names
+    console.log('Dataset type:', dataset.type)
+    console.log('Dataset:', dataset)
+
+    const isAgroscope = dataset.type === 'agroscope'
+    const dryWeightColumn = isAgroscope ? 'DW' : 'Trockenmasse'
+    // ZHAW uses the column name "N added"
+    const nh4nColumn = isAgroscope ? 'NH4-N' : 'N added'
+
     const dryWeightIndex = dataset.metadata.data[0].indexOf(dryWeightColumn)
     const nh4nIndex = dataset.metadata.data[0].indexOf(nh4nColumn)
 
@@ -77,12 +75,12 @@ const Optimise: React.FC = () => {
       par1Index = headers.indexOf('PAR')
       par2Index = -1
       tempIndex = headers.indexOf('Tempterature')
-      flowIndex = headers.indexOf('CO2')
+      //flowIndex = headers.indexOf('CO2')
     } else {
       par1Index = headers.indexOf('PAR.1')
       par2Index = headers.indexOf('PAR.2')
       tempIndex = headers.indexOf('TEMPERATURE')
-      flowIndex = headers.indexOf('FLOW.OF.ALGAE')
+      //flowIndex = headers.indexOf('FLOW.OF.ALGAE')
     }
 
     if (dryWeightIndex === -1) {
@@ -96,18 +94,18 @@ const Optimise: React.FC = () => {
         console.warn('Need at least 2 points for interpolation')
         return points // Return original points if we can't interpolate
       }
-      
+
       const xs = points.map(p => p[0])
       const ys = points.map(p => p[1])
-      
+
       if (xs.length !== ys.length || xs.some(x => x === undefined) || ys.some(y => y === undefined)) {
         console.warn('Invalid points array - contains undefined values')
         return points
       }
-      
+
       const minX = xs[0]
       const maxX = xs[xs.length - 1]
-      
+
       try {
         const spline = new CubicSpline(xs, ys)
         const fitted: [number, number][] = []
@@ -132,13 +130,13 @@ const Optimise: React.FC = () => {
       const timeStr = row[metadataTimeIndex]
       const dryWeightVal = parseFloat(row[dryWeightIndex])
       const nh4nVal = nh4nIndex !== -1 ? parseFloat(row[nh4nIndex]) : 0
-      
+
       // More detailed validation
       if (!timeStr) {
         console.warn('Missing timestamp in metadata row:', row)
         return
       }
-      
+
       try {
         const mdDate = new Date(timeStr)
         if (isNaN(mdDate.getTime())) {
@@ -156,7 +154,7 @@ const Optimise: React.FC = () => {
         // Handle NH4-N
         if (nh4nIndex !== -1) {
           // NH4-N value processed (counted below if valid)
-          
+
           if (!isNaN(nh4nVal)) {
             // Round to nearest hour for NH4-N
             const roundedTime = Math.round(mdDate.getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000)
@@ -174,7 +172,7 @@ const Optimise: React.FC = () => {
         console.warn('Error parsing date:', timeStr, error)
       }
     })
-    
+
     if (metaPoints.length === 0) {
       console.warn('No valid metadata points found!')
       return null
@@ -184,11 +182,11 @@ const Optimise: React.FC = () => {
     // Treat zero or very small values (< 0.1) as potential run starts
     metaPoints.sort((a, b) => a[0] - b[0])
     const possibleStarts = metaPoints.filter(([, v]) => v < 0.1)
-    
+
     // Find the last "zero" before our final value to ensure we get the right run
     const finalPoint = metaPoints[metaPoints.length - 1]
     const relevantStart = possibleStarts.filter(([t]) => t <= finalPoint[0]).pop()
-    
+
     if (relevantStart) {
       // Filter to only include points from this run start onwards
       metaPoints = metaPoints.filter(([t]) => t >= relevantStart[0])
@@ -204,7 +202,7 @@ const Optimise: React.FC = () => {
       const roundedTime = Math.round(d.getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000)
       d.setTime(roundedTime)
       const localKey = formatLocalKey(d)
-      
+
       // Only update if we don't already have a value or if our new value is closer 
       // to the exact hour (prevents double-updates at boundaries)
       const existingEntry = metadataMap.get(localKey)
@@ -301,7 +299,6 @@ const Optimise: React.FC = () => {
         X,
         I,
         T: parseFloat(row[tempIndex]),
-        flow: parseFloat(row[flowIndex]),
         uN,
       }
     })
@@ -312,7 +309,7 @@ const Optimise: React.FC = () => {
     // debug/diagnostic logging removed to reduce console noise
 
     return {
-      data: finalData,
+      series: finalData,
       // Rest of the configuration will be added later
     };
   }
@@ -332,15 +329,19 @@ const Optimise: React.FC = () => {
   const [bounds, setBounds] = useState({
     I: [0.0, 300.0],
     T: [15.0, 30.0],
-    flow: [0.0, 1.5],
-    uN: [0.0, 3.0],
+    //flow: [0.0, 1.5],
+    N: [0.0, 2.0],
   })
-  const [H_candidates, setH_candidates] = useState([12, 18, 24])
+  const [horizon, setHorizon] = useState({
+    H_min: 12,
+    H_max: 48,
+    H_step: 6,
+  })
   const [impact, setImpact] = useState({
     c_I: 1.0,
     c_T: 1.0,
-    c_flow: 1.0,
-    c_uN: 1.0,
+    facility: 1.0,
+    c_N: 1.0,
   })
 
   // --- Optimiser Request State ---
@@ -349,8 +350,7 @@ const Optimise: React.FC = () => {
     hour: number
     I: number
     T: number
-    flow: number
-    uN: number
+    N: number
     X_next: number
     impact_per_hour: number
   }
@@ -360,13 +360,16 @@ const Optimise: React.FC = () => {
     detail: string
     trace: string
     theta: number[]
-    chosen_H: number
+    best_H: number
     report: {
       success: boolean
       message: string
-      fun: number
-      X_final: number
+      objective: number
+      X_end: number
       gap: number
+      impact_total: number
+      impact_per_g: number
+      n_iter: number
     }
     X0: number
     X_target: number
@@ -381,28 +384,31 @@ const Optimise: React.FC = () => {
   console.log('Result: ', result)
 
   // --- Form Handlers ---
-  const handleConfigChange = (key: keyof typeof config, value: number) => {
-    setConfig(prev => ({ ...prev, [key]: value }))
-  }
+  // const handleConfigChange = (key: keyof typeof config, value: number) => {
+  //   setConfig(prev => ({ ...prev, [key]: value }))
+  // }
   const handleBoundsChange = (key: keyof typeof bounds, idx: 0 | 1, value: number) => {
     setBounds(prev => ({ ...prev, [key]: prev[key].map((v, i) => i === idx ? value : v) }))
   }
   const handleImpactChange = (key: keyof typeof impact, value: number) => {
     setImpact(prev => ({ ...prev, [key]: value }))
   }
-  const handleHChange = (values: number[]) => {
-    setH_candidates(values)
+  const handleHorizonChange = (key: keyof typeof horizon, value: number) => {
+    setHorizon(prev => ({ ...prev, [key]: value }))
   }
 
   // Typed event handlers for inputs
-  const handleConfigInput = (key: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleConfigChange(key, Number(e.target.value))
-  }
+  // const handleConfigInput = (key: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   handleConfigChange(key, Number(e.target.value))
+  // }
   const handleBoundsInput = (key: keyof typeof bounds, idx: 0 | 1) => (e: React.ChangeEvent<HTMLInputElement>) => {
     handleBoundsChange(key, idx, Number(e.target.value))
   }
   const handleImpactInput = (key: keyof typeof impact) => (e: React.ChangeEvent<HTMLInputElement>) => {
     handleImpactChange(key, Number(e.target.value))
+  }
+  const handleHorizonInput = (key: keyof typeof horizon) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleHorizonChange(key, Number(e.target.value))
   }
 
   // --- Build Payload and Send ---
@@ -412,10 +418,10 @@ const Optimise: React.FC = () => {
     setResult(null)
     try {
       const payload = {
-        ...transformedData,
+        ...transformedSeries,
         config,
         bounds,
-        H_candidates,
+        horizon,
         impact,
       }
       console.log('Sending payload:', payload)
@@ -423,7 +429,7 @@ const Optimise: React.FC = () => {
       const apiUrl = isLocal
         ? '/mirco/api/optimizer.php'  // Local development
         : 'https://acls.ulozezoz.myhostpoint.ch/mirco/api/optimizer.php'
-      
+
       // Use CORS proxy in production only
       const finalUrl = isLocal ? apiUrl : 'https://corsproxy.io/?' + encodeURIComponent(apiUrl)
 
@@ -456,7 +462,7 @@ const Optimise: React.FC = () => {
       {/* --- Optimiser Config Form (4 columns, each with 2-row layout) --- */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
         {/* Config Column */}
-        <Box sx={{ flex: 1}}>
+        {/* <Box sx={{ flex: 1 }}>
           <Typography variant='subtitle1' sx={{ mb: 1 }}>Config</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(3 / 2))}, 1fr)`, gap: 1 }}>
             <FormControl>
@@ -472,10 +478,10 @@ const Optimise: React.FC = () => {
               <OutlinedInput type='number' value={config.dt_hours} onChange={handleConfigInput('dt_hours')} />
             </FormControl>
           </Box>
-        </Box>
+        </Box> */}
 
         {/* Bounds Column */}
-        <Box sx={{ flex: 1.5}}>
+        <Box sx={{ flex: 1.5 }}>
           <Typography variant='subtitle1' sx={{ mb: 1 }}>Bounds</Typography>
           {(() => {
             const entries = Object.entries(bounds)
@@ -504,32 +510,27 @@ const Optimise: React.FC = () => {
           })()}
         </Box>
 
-        {/* H_candidates Column */}
-        <Box sx={{ flex: 0.75}}>
-          <Typography variant='subtitle1' sx={{ mb: 1 }}>Horizon Candidates</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(1 / 2))}, 1fr)`, gap: 1 }}>
+        {/* Horizon Column */}
+        <Box sx={{ flex: 1 }}>
+          <Typography variant='subtitle1' sx={{ mb: 1 }}>Horizon</Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(3 / 2))}, 1fr)`, gap: 1 }}>
             <FormControl>
-              <InputLabel shrink>Hours</InputLabel>
-              <Select
-                multiple
-                value={H_candidates}
-                onChange={e => handleHChange(typeof e.target.value === 'string' ? e.target.value.split(',').map(Number) : e.target.value as number[])}
-                input={<OutlinedInput />}
-                renderValue={selected => (selected as number[]).join(', ')}
-              >
-                {[12, 18, 24, 36, 48, 72, 96, 120, 144, 168, 192].map(val => (
-                  <MenuItem key={val} value={val}>
-                    <Checkbox checked={H_candidates.includes(val)} />
-                    <ListItemText primary={val} />
-                  </MenuItem>
-                ))}
-              </Select>
+              <InputLabel shrink>Min</InputLabel>
+              <OutlinedInput type='number' value={horizon.H_min} onChange={handleHorizonInput('H_min')} />
+            </FormControl>
+            <FormControl>
+              <InputLabel shrink>Max</InputLabel>
+              <OutlinedInput type='number' value={horizon.H_max} onChange={handleHorizonInput('H_max')} />
+            </FormControl>
+            <FormControl>
+              <InputLabel shrink>Step</InputLabel>
+              <OutlinedInput type='number' value={horizon.H_step} onChange={handleHorizonInput('H_step')} />
             </FormControl>
           </Box>
         </Box>
 
         {/* Impact Column */}
-        <Box sx={{ flex: 1}}>
+        <Box sx={{ flex: 1 }}>
           <Typography variant='subtitle1' sx={{ mb: 1 }}>Impact</Typography>
           {(() => {
             const entries = Object.entries(impact)
@@ -547,7 +548,7 @@ const Optimise: React.FC = () => {
           })()}
         </Box>
         <Box sx={{ mb: 2, alignItems: 'center', display: 'flex' }}>
-          <Button variant='contained' color='secondary' onClick={sendPayload} disabled={loading || !transformedData}>
+          <Button variant='contained' color='secondary' onClick={sendPayload} disabled={loading || !transformedSeries}>
             Calculate
           </Button>
           {error && (
@@ -572,8 +573,8 @@ const Optimise: React.FC = () => {
               <Typography color="error" variant="h6" sx={{ mb: 1 }}>Optimization Error</Typography>
               <Typography color="error" variant="body1" sx={{ mb: 2 }}>{result.detail || 'Unknown error'}</Typography>
               {result.trace && (
-                <Typography component="pre" sx={{ 
-                  whiteSpace: 'pre-wrap', 
+                <Typography component="pre" sx={{
+                  whiteSpace: 'pre-wrap',
                   bgcolor: theme.palette.background.paper,
                   p: 2,
                   borderRadius: 1,
@@ -602,59 +603,47 @@ const Optimise: React.FC = () => {
                       min: Math.min(...result.schedule.map(d => d.T)),
                       max: Math.max(...result.schedule.map(d => d.T))
                     },
-                    flow: {
-                      min: Math.min(...result.schedule.map(d => d.flow)),
-                      max: Math.max(...result.schedule.map(d => d.flow))
-                    },
-                    uN: {
-                      min: Math.min(...result.schedule.map(d => d.uN)),
-                      max: Math.max(...result.schedule.map(d => d.uN))
+                    N: {
+                      min: Math.min(...result.schedule.map(d => d.N)),
+                      max: Math.max(...result.schedule.map(d => d.N))
                     }
                   }
 
                   // Helper function to normalize a value
-                  const normalize = (value: number, min: number, max: number) => 
+                  const normalize = (value: number, min: number, max: number) =>
                     max === min ? 0.5 : (value - min) / (max - min)
 
                   return [
                     {
                       id: 'X_next (g/L)',
-                      data: result.schedule.map(d => ({ 
-                        x: d.hour, 
+                      data: result.schedule.map(d => ({
+                        x: d.hour,
                         y: normalize(d.X_next, minMax.X_next.min, minMax.X_next.max),
                         originalY: d.X_next
                       }))
                     },
                     {
                       id: 'I (µmol/m²/s)',
-                      data: result.schedule.map(d => ({ 
-                        x: d.hour, 
+                      data: result.schedule.map(d => ({
+                        x: d.hour,
                         y: normalize(d.I, minMax.I.min, minMax.I.max),
                         originalY: d.I
                       }))
                     },
                     {
                       id: 'T (°C)',
-                      data: result.schedule.map(d => ({ 
-                        x: d.hour, 
+                      data: result.schedule.map(d => ({
+                        x: d.hour,
                         y: normalize(d.T, minMax.T.min, minMax.T.max),
                         originalY: d.T
                       }))
                     },
                     {
-                      id: 'flow (L/min)',
-                      data: result.schedule.map(d => ({ 
-                        x: d.hour, 
-                        y: normalize(d.flow, minMax.flow.min, minMax.flow.max),
-                        originalY: d.flow
-                      }))
-                    },
-                    {
                       id: 'uN (mL/h)',
-                      data: result.schedule.map(d => ({ 
-                        x: d.hour, 
-                        y: normalize(d.uN, minMax.uN.min, minMax.uN.max),
-                        originalY: d.uN
+                      data: result.schedule.map(d => ({
+                        x: d.hour,
+                        y: normalize(d.N, minMax.N.min, minMax.N.max),
+                        originalY: d.N
                       }))
                     }
                   ]
@@ -787,24 +776,24 @@ const Optimise: React.FC = () => {
                 }}
               />
               <Box
-                          sx={{
-                            position: 'absolute',
-                            top: 16,
-                            right: 0,
-                            zIndex: 20,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 1,
-                          }}
-                        >
-                          <OptimiserMetricsBox
-                            horizon={result.chosen_H}
-                            xFinal={result.report.X_final}
-                            gap={result.report.gap}
-                          />
-                        </Box>
+                sx={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 0,
+                  zIndex: 20,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                }}
+              >
+                <OptimiserMetricsBox
+                  horizon={result.best_H}
+                  impact_total={result.report.impact_total}
+                  gap={result.report.gap}
+                />
+              </Box>
             </Box>
-            
+
           )
         ) : (
           <Typography variant='body2' sx={{ p: 2 }}>No result yet.</Typography>
