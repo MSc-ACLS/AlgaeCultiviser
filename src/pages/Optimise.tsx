@@ -516,15 +516,15 @@ const Optimise: React.FC = () => {
           <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(3 / 2))}, 1fr)`, gap: 1 }}>
             <FormControl>
               <InputLabel shrink>Min</InputLabel>
-              <OutlinedInput type='number' value={horizon.H_min} onChange={handleHorizonInput('H_min')} />
+              <OutlinedInput type='number' value={horizon.H_min} onChange={handleHorizonInput('H_min')} label='Min' />
             </FormControl>
             <FormControl>
               <InputLabel shrink>Max</InputLabel>
-              <OutlinedInput type='number' value={horizon.H_max} onChange={handleHorizonInput('H_max')} />
+              <OutlinedInput type='number' value={horizon.H_max} onChange={handleHorizonInput('H_max')} label='Max' />
             </FormControl>
             <FormControl>
               <InputLabel shrink>Step</InputLabel>
-              <OutlinedInput type='number' value={horizon.H_step} onChange={handleHorizonInput('H_step')} />
+              <OutlinedInput type='number' value={horizon.H_step} onChange={handleHorizonInput('H_step')} label='Step' />
             </FormControl>
           </Box>
         </Box>
@@ -540,7 +540,7 @@ const Optimise: React.FC = () => {
                 {entries.map(([key, val]) => (
                   <FormControl key={key}>
                     <InputLabel shrink>{key}</InputLabel>
-                    <OutlinedInput type='number' value={val} onChange={handleImpactInput(key as keyof typeof impact)} />
+                    <OutlinedInput type='number' value={val} onChange={handleImpactInput(key as keyof typeof impact)} label={key} />
                   </FormControl>
                 ))}
               </Box>
