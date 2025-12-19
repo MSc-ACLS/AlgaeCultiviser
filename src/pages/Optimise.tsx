@@ -337,11 +337,12 @@ const Optimise: React.FC = () => {
     H_max: 48,
     H_step: 6,
   })
+  const isAgroscope = selectedDataset?.type === 'agroscope'
   const [impact, setImpact] = useState({
-    c_I: 1.0,
-    c_T: 1.0,
-    facility: 1.0,
-    c_N: 1.0,
+    c_I: isAgroscope ? 23.8 : 0,
+    c_T: isAgroscope ? 17.3 : 40.5,
+    facility: isAgroscope ? 8.75 : 8.48,
+    c_N: isAgroscope ? 20.3 : 1.6
   })
 
   // --- Optimiser Request State ---
@@ -481,7 +482,7 @@ const Optimise: React.FC = () => {
         </Box> */}
 
         {/* Bounds Column */}
-        <Box sx={{ flex: 1.5 }}>
+        <Box sx={{ flex: 2 }}>
           <Typography variant='subtitle1' sx={{ mb: 1 }}>Bounds</Typography>
             {(() => {
             const entries = Object.entries(bounds)
