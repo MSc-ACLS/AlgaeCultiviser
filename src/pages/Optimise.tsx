@@ -1,4 +1,4 @@
-import { Box, Typography, FormControl,Tooltip, IconButton, Button, CircularProgress } from '@mui/material'
+import { Box, Typography, FormControl, Tooltip, IconButton, Button, CircularProgress, InputAdornment } from '@mui/material'
 import InputLabel from '@mui/material/InputLabel'
 import OutlinedInput from '@mui/material/OutlinedInput'
 import DownloadForOfflineTwoToneIcon from '@mui/icons-material/DownloadForOfflineTwoTone'
@@ -483,28 +483,47 @@ const Optimise: React.FC = () => {
         {/* Bounds Column */}
         <Box sx={{ flex: 1.5 }}>
           <Typography variant='subtitle1' sx={{ mb: 1 }}>Bounds</Typography>
-          {(() => {
+            {(() => {
             const entries = Object.entries(bounds)
             const cols = Math.max(1, Math.ceil(entries.length / 2))
             return (
               <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 1 }}>
-                {entries.map(([key, val]) => (
-                  <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box sx={{ minWidth: 30, flexShrink: 0 }}>
-                      <Typography variant='body1' sx={{ textAlign: 'left' }}>{key}</Typography>
+                {entries.map(([key, val]) => {
+                  let unit = ''
+                  if (key === 'I') unit = 'µmol/m²/s'
+                  if (key === 'T') unit = '°C'
+                  if (key === 'N') unit = 'mL/h'
+
+                  return (
+                    <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ minWidth: 30, flexShrink: 0 }}>
+                        <Typography variant='body1' sx={{ textAlign: 'left' }}>{key}</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flex: 1 }}>
+                        <FormControl sx={{ width: '50%' }}>
+                          <InputLabel shrink>Min</InputLabel>
+                          <OutlinedInput
+                            type='number'
+                            value={val[0]}
+                            onChange={handleBoundsInput(key as keyof typeof bounds, 0)}
+                            label='Min'
+                            endAdornment={unit ? <InputAdornment position='end'>{unit}</InputAdornment> : undefined}
+                          />
+                        </FormControl>
+                        <FormControl sx={{ width: '50%' }}>
+                          <InputLabel shrink>Max</InputLabel>
+                          <OutlinedInput
+                            type='number'
+                            value={val[1]}
+                            onChange={handleBoundsInput(key as keyof typeof bounds, 1)}
+                            label='Max'
+                            endAdornment={unit ? <InputAdornment position='end'>{unit}</InputAdornment> : undefined}
+                          />
+                        </FormControl>
+                      </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flex: 1 }}>
-                      <FormControl sx={{ width: '50%' }}>
-                        <InputLabel shrink>Min</InputLabel>
-                        <OutlinedInput type='number' value={val[0]} onChange={handleBoundsInput(key as keyof typeof bounds, 0)} label='Min' />
-                      </FormControl>
-                      <FormControl sx={{ width: '50%' }}>
-                        <InputLabel shrink>Max</InputLabel>
-                        <OutlinedInput type='number' value={val[1]} onChange={handleBoundsInput(key as keyof typeof bounds, 1)} label='Max' />
-                      </FormControl>
-                    </Box>
-                  </Box>
-                ))}
+                  )
+                })}
               </Box>
             )
           })()}
@@ -516,33 +535,64 @@ const Optimise: React.FC = () => {
           <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Math.ceil(3 / 2))}, 1fr)`, gap: 1 }}>
             <FormControl>
               <InputLabel shrink>Min</InputLabel>
-              <OutlinedInput type='number' value={horizon.H_min} onChange={handleHorizonInput('H_min')} label='Min' />
+              <OutlinedInput
+                type='number'
+                value={horizon.H_min}
+                onChange={handleHorizonInput('H_min')}
+                label='Min'
+                endAdornment={<InputAdornment position='end'>h</InputAdornment>}
+              />
             </FormControl>
             <FormControl>
               <InputLabel shrink>Max</InputLabel>
-              <OutlinedInput type='number' value={horizon.H_max} onChange={handleHorizonInput('H_max')} label='Max' />
+              <OutlinedInput
+                type='number'
+                value={horizon.H_max}
+                onChange={handleHorizonInput('H_max')}
+                label='Max'
+                endAdornment={<InputAdornment position='end'>h</InputAdornment>}
+              />
             </FormControl>
             <FormControl>
               <InputLabel shrink>Step</InputLabel>
-              <OutlinedInput type='number' value={horizon.H_step} onChange={handleHorizonInput('H_step')} label='Step' />
+              <OutlinedInput
+                type='number'
+                value={horizon.H_step}
+                onChange={handleHorizonInput('H_step')}
+                label='Step'
+                endAdornment={<InputAdornment position='end'>h</InputAdornment>}
+              />
             </FormControl>
           </Box>
         </Box>
 
         {/* Impact Column */}
         <Box sx={{ flex: 1 }}>
-          <Typography variant='subtitle1' sx={{ mb: 1 }}>Impact</Typography>
+          <Typography variant='subtitle1' sx={{ mb: 1 }}>Impact (CO<sub>2</sub>-eq/g)</Typography>
           {(() => {
             const entries = Object.entries(impact)
             const cols = Math.max(1, Math.ceil(entries.length / 2))
             return (
               <Box sx={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 1 }}>
-                {entries.map(([key, val]) => (
-                  <FormControl key={key}>
-                    <InputLabel shrink>{key}</InputLabel>
-                    <OutlinedInput type='number' value={val} onChange={handleImpactInput(key as keyof typeof impact)} label={key} />
-                  </FormControl>
-                ))}
+                {entries.map(([key, val]) => {
+                  let unit = ''
+                  // if (key === 'c_I') unit = 'per µmol/m²/s'
+                  // if (key === 'c_T') unit = 'per °C'
+                  // if (key === 'c_N') unit = 'per mL/h'
+
+                  return (
+                    <FormControl key={key}>
+                      <InputLabel shrink>{key}</InputLabel>
+                      <OutlinedInput
+                        type='number'
+                        value={val}
+                        onChange={handleImpactInput(key as keyof typeof impact)}
+                        label={key}
+                        endAdornment={unit ? <InputAdornment position='end'>{unit}</InputAdornment> : undefined}
+                      />
+                    </FormControl>
+                  )
+                })}
               </Box>
             )
           })()}
