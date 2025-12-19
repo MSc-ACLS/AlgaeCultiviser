@@ -497,12 +497,9 @@ const Optimise: React.FC = () => {
 
                   return (
                     <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box sx={{ minWidth: 30, flexShrink: 0 }}>
-                        <Typography variant='body1' sx={{ textAlign: 'left' }}>{key}</Typography>
-                      </Box>
                       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flex: 1 }}>
                         <FormControl sx={{ width: '50%' }}>
-                          <InputLabel shrink>Min</InputLabel>
+                          <InputLabel shrink>{key}-Min</InputLabel>
                           <OutlinedInput
                             type='number'
                             value={val[0]}
@@ -512,7 +509,7 @@ const Optimise: React.FC = () => {
                           />
                         </FormControl>
                         <FormControl sx={{ width: '50%' }}>
-                          <InputLabel shrink>Max</InputLabel>
+                          <InputLabel shrink>{key}-Max</InputLabel>
                           <OutlinedInput
                             type='number'
                             value={val[1]}
@@ -699,7 +696,9 @@ const Optimise: React.FC = () => {
                     }
                   ]
                 })()}
-                margin={{ top: 20, right: 240, bottom: 60, left: 60 }}
+                margin={{ top: 20, right: 240, bottom: 60, left: 20 }}
+                enableGridX={false}
+                enableGridY={false}
 
                 xScale={{
                   type: 'linear',
@@ -710,9 +709,8 @@ const Optimise: React.FC = () => {
                   type: 'linear',
                   min: 'auto',
                   max: 'auto',
-                  stacked: false,
-                  reverse: false
                 }}
+                axisLeft={null}
                 tooltip={({ point }: PointTooltipProps) => {
                   const isCursorLow = (point as any).y > 100
                   const isCursorLeft = (point as any).x < 100
@@ -743,14 +741,6 @@ const Optimise: React.FC = () => {
                     </Box>
                   )
                 }}
-                axisLeft={{
-                  tickSize: 5,
-                  tickPadding: 5,
-                  tickRotation: 0,
-                  legend: 'Value (normalised)',
-                  legendOffset: -40,
-                  legendPosition: 'middle'
-                }}
                 axisBottom={{
                   tickSize: 5,
                   tickPadding: 5,
@@ -761,8 +751,8 @@ const Optimise: React.FC = () => {
                 }}
                 pointSize={4}
                 pointColor={{ theme: 'background' }}
-                pointBorderWidth={2}
-                pointBorderColor={{ from: 'serieColor' }}
+                colors={{ scheme: 'category10' }}
+                curve='basis'
                 enablePoints={true}
                 legends={[
                   {
@@ -800,8 +790,8 @@ const Optimise: React.FC = () => {
                   axis: {
                     domain: {
                       line: {
-                        stroke: theme.palette.text.primary,
-                        strokeWidth: 1
+                        stroke: 'transparent',
+                        strokeWidth: 0
                       }
                     },
                     ticks: {
@@ -817,17 +807,6 @@ const Optimise: React.FC = () => {
                       text: {
                         fill: theme.palette.text.primary
                       }
-                    }
-                  },
-                  grid: {
-                    line: {
-                      stroke: theme.palette.divider,
-                      strokeWidth: 1
-                    }
-                  },
-                  legends: {
-                    text: {
-                      fill: theme.palette.text.primary
                     }
                   },
                   tooltip: {
