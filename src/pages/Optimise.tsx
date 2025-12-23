@@ -657,16 +657,22 @@ const Optimise: React.FC = () => {
                     }
                   }
 
-                  // Helper function to normalize a value
-                  const normalize = (value: number, min: number, max: number) =>
-                    max === min ? 0.5 : (value - min) / (max - min)
+                  const constantY: Record<string, number> = {
+                    'X_next (g/L)': 0.50,
+                    'I (µmol/m²/s)': 0.48,
+                    'T (°C)': 0.50,
+                    'uN (mL/h)': 0.52 ,
+                  }
+
+                  const normalize = (seriesId: string, value: number, min: number, max: number) =>
+                    max === min ? constantY[seriesId] ?? 0.5 : (value - min) / (max - min)
 
                   return [
                     {
                       id: 'X_next (g/L)',
                       data: result.schedule.map(d => ({
                         x: d.hour,
-                        y: normalize(d.X_next, minMax.X_next.min, minMax.X_next.max),
+                        y: normalize('X_next (g/L)', d.X_next, minMax.X_next.min, minMax.X_next.max),
                         originalY: d.X_next
                       }))
                     },
@@ -674,7 +680,7 @@ const Optimise: React.FC = () => {
                       id: 'I (µmol/m²/s)',
                       data: result.schedule.map(d => ({
                         x: d.hour,
-                        y: normalize(d.I, minMax.I.min, minMax.I.max),
+                        y: normalize('I (µmol/m²/s)', d.I, minMax.I.min, minMax.I.max),
                         originalY: d.I
                       }))
                     },
@@ -682,7 +688,7 @@ const Optimise: React.FC = () => {
                       id: 'T (°C)',
                       data: result.schedule.map(d => ({
                         x: d.hour,
-                        y: normalize(d.T, minMax.T.min, minMax.T.max),
+                        y: normalize('T (°C)', d.T, minMax.T.min, minMax.T.max),
                         originalY: d.T
                       }))
                     },
@@ -690,7 +696,7 @@ const Optimise: React.FC = () => {
                       id: 'uN (mL/h)',
                       data: result.schedule.map(d => ({
                         x: d.hour,
-                        y: normalize(d.N, minMax.N.min, minMax.N.max),
+                        y: normalize('uN (mL/h)', d.N, minMax.N.min, minMax.N.max),
                         originalY: d.N
                       }))
                     }
